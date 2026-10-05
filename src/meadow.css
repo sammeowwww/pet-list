@@ -1,0 +1,49 @@
+/* The meadow owns its styles; Figma card and footer styles stay outside it. */
+.game-card.meadow-card { display: flex; flex-direction: column; min-height: 0; background: #dfeae3; }
+.meadow-card .scene-caption { position: relative; flex-shrink: 0; inset: auto; }
+.scene-footer-actions { display: flex; gap: 6px; }
+.meadow-scene { position: relative; width: 100%; aspect-ratio: 960 / 430; flex: 1; min-height: 270px; overflow: hidden; isolation: isolate; background: #dfeae3; }
+.meadow-background { position: absolute; inset: 0; width: 100%; height: 100%; }
+.meadow-label { position: absolute; left: 22px; top: 22px; display: flex; align-items: center; gap: 7px; color: #829178; font-size: 8px; font-weight: 600; letter-spacing: 1.7px; z-index: 1000; }
+.meadow-label > span { width: 5px; height: 5px; border-radius: 50%; background: #92a97e; }
+.meadow-weather { position: absolute; right: 20px; top: 19px; color: #929e83; font-size: 9px; display: flex; gap: 6px; align-items: center; z-index: 1000; }
+.meadow-weather > span { color: #b4a474; font-size: 17px; }
+.meadow-dog { position: absolute; width: 14%; aspect-ratio: 1; transform: translate(-50%,-88%); pointer-events: none; }
+.meadow-dog-body { width: 100%; height: 100%; }
+.meadow-dog-body > img, .meadow-dog-body > svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.meadow-dog-shadow { position: absolute; width: 73%; height: 6%; background: #6f8d6430; left: 14%; top: 88%; border-radius: 50%; }
+.meadow-dog.resting:not(.frozen) .meadow-dog-body { animation: meadow-breathe 3s ease-in-out infinite; transform-origin: center 88%; }
+.meadow-dog.hopping .meadow-dog-body { animation: meadow-hop .9s ease-in-out infinite; }
+.meadow-dog.frozen .meadow-dog-body { animation-play-state: paused; }
+.meadow-item { position: absolute; width: 7%; transform: translate(-50%,-60%); pointer-events: none; }
+.meadow-item svg { width: 100%; height: auto; display: block; }
+.meadow-flowers { position: absolute; inset: 0; pointer-events: none; z-index: 700; transition: opacity 1.3s linear; }
+.meadow-flowers.fading { opacity: 0; }
+.meadow-flower { position: absolute; width: 5px; height: 18px; transform: translate(-50%,-100%); transform-origin: center bottom; animation: meadow-sprout .5s ease-out both; }
+.meadow-flower i { position: absolute; width: 3px; height: 14px; bottom: 0; left: 1px; background: #6c9161; }
+.meadow-flower i::after { content: ''; position: absolute; width: 5px; height: 3px; bottom: 4px; left: 2px; background: #7c9f66; }
+.meadow-flower b { position: absolute; width: 5px; height: 5px; background: #e5cc82; top: 0; left: 0; box-shadow: -4px 0 var(--petal), 4px 0 var(--petal), 0 -4px var(--petal), 0 4px var(--petal); }
+.meadow-flowers.static .meadow-flower { animation: none; }
+.meadow-placement-grid { position: absolute; left: 8%; top: 57%; width: 84%; height: 38%; display: grid; grid-template-columns: repeat(8,1fr); grid-template-rows: repeat(3,1fr); gap: 3px; z-index: 1100; }
+.meadow-placement-grid button { color: #fbfce5; border: 1px dashed #f7fbe6b3; background: #f0f7db33; border-radius: 3px; font-size: 17px; }
+.meadow-placement-grid button:disabled { border-color: transparent; background: transparent; color: transparent; opacity: 1; }
+.meadow-placement-grid button:not(:disabled):hover { background: #f5f8da9e; color: #708659; }
+.inventory-panel { background: #fffdf6; border: 1px solid #d8d7ca; border-radius: 10px; padding: 20px; margin-top: 24px; box-shadow: 4px 4px 0 #dedccd; }
+.inventory-panel h2 { font: 600 25px 'Pixelify Sans'; margin-bottom: 7px; }
+.inventory-panel p { color: #7c8970; font-size: 12px; }
+.inventory-items { display: flex; gap: 12px; flex-wrap: wrap; }
+.inventory-item > button:first-child { width: 100px; display: flex; flex-direction: column; align-items: center; padding: 10px; border: 1px solid #cfdbc2; border-radius: 6px; background: #f0f3e5; font-size: 11px; }
+.inventory-item > button:first-child.selected { background: #e1ebd4; border: 2px solid #89a66e; padding: 9px; }
+.inventory-item svg { width: 45px; height: 45px; margin-bottom: 7px; }
+.store-button { display: block; margin: 7px auto; border: 0; background: transparent; color: #768c64; font-size: 10px; }
+@keyframes meadow-breathe { 50% { transform: scaleY(1.025); } }
+@keyframes meadow-hop { 0%, 45%, 100% { transform: translateY(0); } 20% { transform: translateY(-10px) rotate(-2deg); } }
+@keyframes meadow-sprout { from { scale: 1 .1; } to { scale: 1 1; } }
+@media (max-width: 600px) { .meadow-scene { min-height: 210px; } .meadow-label { font-size: 6px; left: 13px; top: 15px; letter-spacing: 1px; } .meadow-weather { font-size: 7px; right: 13px; top: 12px; } .meadow-dog { width: 16%; } .meadow-card .scene-caption { min-height: 70px; } .meadow-card .scene-caption button { font-size: 12px; padding: 7px; } .scene-footer-actions button > span { display: none; } .meadow-card .scene-caption b { font-size: 12px; } .meadow-flower { scale: .75; } }
+@media (prefers-reduced-motion: reduce) { .meadow-dog-body, .meadow-flower { animation: none !important; } .meadow-flowers { transition: none; } }
+
+.meadow-dog.hungry:not(.hopping):not(.frozen) .meadow-dog-body { animation: meadow-plead 2.8s ease-in-out infinite; transform-origin: center 88%; }
+.pet-bubble { position: absolute; width: 44%; height: auto; left: 28%; bottom: 92%; image-rendering: pixelated; pointer-events: none; }
+.pet-feed-target { position: absolute; width: 44px; height: 44px; bottom: 4%; left: 50%; transform: translateX(-50%); padding: 0; border: 0; border-radius: 8px; background: transparent; pointer-events: auto; cursor: pointer; }
+.pet-feed-target:focus-visible { outline: 3px solid #385c45; outline-offset: 3px; background: #ffffff25; }
+@keyframes meadow-plead { 25% { transform: rotate(-3deg) translateX(-1px); } 75% { transform: rotate(3deg) translateX(1px); } }

@@ -1,0 +1,13 @@
+{
+	"name": "pixel-list",
+	"compatibility_date": "2026-10-05",
+	"vars": { "GOOGLE_CLIENT_ID": "926918796344-nfemjtqktr31fd0foqn1qdusa5h16mco.apps.googleusercontent.com" },
+	"pages_build_output_dir": "./dist",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "petlist",
+			"database_id": "bee0303b-4ac5-405c-835c-c5fa0f96b19e"
+		}
+	]
+}
