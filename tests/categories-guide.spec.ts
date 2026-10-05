@@ -113,10 +113,11 @@ test('first-use illustrated tour, keyboard dismissal and replay never mutate the
   const state = emptyState(); state.tasks = [task('Keep this task')];
   await seed(page, state, true);
   await expect(page.getByRole('dialog', { name: 'Welcome to PetList' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start tour' })).toBeFocused();
+  const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  await expect(touch ? page.getByRole('dialog') : page.getByRole('button', { name: 'Start tour' })).toBeFocused();
   await page.getByRole('button', { name: 'Start tour' }).press('Enter');
   await expect(page.getByLabel('Step 1 of 8')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeFocused();
+  await expect(touch ? page.getByRole('dialog') : page.getByRole('button', { name: 'Next', exact: true })).toBeFocused();
   await page.screenshot({ path: info.outputPath('walkthrough.png'), fullPage: true });
   for (let step = 1; step < 8; step++) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -174,4 +175,61 @@ test('skipping the welcome persists and keyboard focus stays inside a replay', a
   await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Next', exact: true }).press('Escape');
   await expect(page.getByRole('button', { name: 'Replay walkthrough' })).toBeFocused();
+});
+
+test('walkthrough blocks background taps and page scrolling, then restores the page', async ({ page }) => {
+  await seed(page);
+  await page.evaluate(() => window.scrollTo(0, 250));
+  await page.getByRole('button', { name: 'Settings and backups' }).click();
+  const replay = page.getByRole('button', { name: 'Replay walkthrough' });
+  await replay.scrollIntoViewIfNeeded();
+  const previousScroll = await page.evaluate(() => scrollY);
+  await replay.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.bottom-nav')).toHaveAttribute('inert', '');
+  await expect(page.locator('.topbar')).toHaveAttribute('inert', '');
+  await expect(page.locator('body')).toHaveCSS('position', 'fixed');
+  const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  if (touch) {
+    await expect(page.getByRole('dialog')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Next', exact: true })).not.toBeFocused();
+  }
+  const home = page.locator('.bottom-nav .home-button');
+  const point = await home.boundingBox();
+  if (touch) await page.touchscreen.tap(point!.x + point!.width / 2, point!.y + point!.height / 2);
+  else await page.mouse.click(point!.x + point!.width / 2, point!.y + point!.height / 2);
+  await expect(page.locator('.bottom-nav button.active')).toContainText('Settings');
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.move(2, 2);
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(before);
+  await page.getByRole('button', { name: 'Next', exact: true }).press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.bottom-nav')).not.toHaveAttribute('inert');
+  await expect(page.locator('body')).not.toHaveCSS('position', 'fixed');
+  expect(await page.evaluate(() => scrollY)).toBe(previousScroll);
+  await nav(page, 'Home').click();
+  await expect(nav(page, 'Home')).toHaveAttribute('aria-current', 'page');
+});
+
+test('input focus and touch taps keep their normal border without a glow', async ({ page }) => {
+  await seed(page);
+  await page.getByRole('button', { name: 'Add task', exact: true }).click();
+  const title = page.getByLabel('Task name');
+  await expect(title).toBeFocused();
+  await expect(title).toHaveCSS('outline-style', 'none');
+  await expect(title).toHaveCSS('box-shadow', 'none');
+  await expect(title).toHaveCSS('-webkit-tap-highlight-color', 'rgba(0, 0, 0, 0)');
+  const border = await title.evaluate(element => getComputedStyle(element).border);
+  await page.getByLabel('Category', { exact: true }).focus();
+  await expect(page.getByLabel('Category', { exact: true })).toHaveCSS('outline-style', 'none');
+  await title.click();
+  expect(await title.evaluate(element => getComputedStyle(element).border)).toBe(border);
+  await title.fill('A normal-looking input');
+  await page.locator('.optional-details > summary').click();
+  await page.getByLabel('Notes').click();
+  await expect(page.getByLabel('Notes')).toHaveCSS('outline-style', 'none');
+  await page.getByLabel('Notes').fill('Typing still works');
+  await page.getByRole('button', { name: /^Add to/ }).click();
+  await expect(page.locator('.task-row')).toContainText('A normal-looking input');
 });

@@ -27,9 +27,9 @@ function TourIllustration({ step }: { step: number }) {
 export default function Walkthrough({ welcome, onClose }: { welcome: boolean; onClose: () => void }) {
   const [started, setStarted] = useState(!welcome);
   const [step, setStep] = useState(0);
-  if (!started) return <Dialog key="welcome" title="Welcome to PetList" onClose={onClose}><div className="tour-welcome"><PawPrint size={40} /><p>A little planning, a few small wins, and happy pixel pets.</p><img src="/dog.png" alt="Bob, your pixel dog companion" /></div><div className="dialog-actions"><button className="secondary-button" onClick={onClose}>Skip</button><button data-autofocus className="primary-button" onClick={() => setStarted(true)}>Start tour</button></div></Dialog>;
+  if (!started) return <Dialog touchFocus="dialog" key="welcome" title="Welcome to PetList" onClose={onClose}><div className="tour-welcome"><PawPrint size={40} /><p>A little planning, a few small wins, and happy pixel pets.</p><img src="/dog.png" alt="Bob, your pixel dog companion" /></div><div className="dialog-actions"><button className="secondary-button" onClick={onClose}>Skip</button><button data-autofocus className="primary-button" onClick={() => setStarted(true)}>Start tour</button></div></Dialog>;
   const content = STEPS[step];
-  return <Dialog key="guide" title="Your PetList guide" onClose={onClose}>
+  return <Dialog touchFocus="dialog" key="guide" title="Your PetList guide" onClose={onClose}>
     <div className="tour-progress" aria-label={`Step ${step + 1} of ${STEPS.length}`}><span>Step {step + 1} of {STEPS.length}</span><progress value={step + 1} max={STEPS.length} /></div>
     <TourIllustration step={step} />
     <section className="tour-copy" aria-live="polite" aria-atomic="true"><h3>{content.title}</h3><p>{content.text}</p></section>

@@ -131,7 +131,7 @@ h1 { font-family: 'Pixelify Sans'; font-size: clamp(35px, 4vw, 50px); line-heigh
 .modal-backdrop { position: fixed; z-index: 100; inset: 0; background: rgba(35,45,39,.55); display: grid; place-items: center; padding: 20px; backdrop-filter: blur(3px); }
 .task-modal { width: min(440px,100%); background: #fffdf7; border: 3px solid #31483b; box-shadow: 7px 7px 0 #25372e; padding: 28px; position: relative; }
 .task-modal h2 { font: 600 29px 'Pixelify Sans'; margin-bottom: 22px; }.modal-close { position: absolute; right: 17px; top: 17px; border: 0; background: transparent; color: #6f7871; }
-.task-modal label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 15px; color: #536057; }.task-modal input, .task-modal select { display: block; margin-top: 6px; width: 100%; border: 1px solid #bec3bb; background: white; border-radius: 6px; padding: 12px; color: #2b3730; outline: none; }.task-modal input:focus, .task-modal select:focus { border: 2px solid #4d755b; padding: 11px; }
+.task-modal label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 15px; color: #536057; }.task-modal input, .task-modal select { display: block; margin-top: 6px; width: 100%; border: 1px solid #bec3bb; background: white; border-radius: 6px; padding: 12px; color: #2b3730; outline: none; }
 .modal-info { display: flex; align-items: center; gap: 9px; padding: 11px; margin: 8px 0 20px; background: #f7edc9; color: #705b30; font-size: 12px; }
 
 @media (max-width: 860px) {
@@ -216,7 +216,7 @@ svg { flex-shrink: 0; }
 .dialog-intro { font-size: 12px; line-height: 1.8; color: #72806d; }
 .task-form label { display: block; color: #536057; font-size: 12px; font-weight: 700; margin-bottom: 15px; }
 .task-form input:not([type=radio]), .task-form select, .task-form textarea { display: block; margin-top: 6px; width: 100%; border: 1px solid #bec3bb; background: white; border-radius: 6px; padding: 11px; color: #2b3730; font: 400 14px 'DM Sans'; min-width: 0; }
-.task-form input:focus, .task-form select:focus, .task-form textarea:focus { outline: 2px solid #7c9a64; outline-offset: 2px; }
+input:focus, select:focus, textarea:focus { outline: none; box-shadow: none; }
 .task-form textarea { resize: vertical; }
 .optional-details { border-top: 1px solid #e0e2d5; border-bottom: 1px solid #e0e2d5; margin-bottom: 18px; }
 .optional-details summary { color: #647660; font-size: 12px; padding: 13px 0; cursor: pointer; }
@@ -349,3 +349,12 @@ svg { flex-shrink: 0; }
 .tour-controls, .tour-controls > div { display: flex; align-items: center; gap: 12px; }
 .tour-controls { justify-content: space-between; margin-top: 24px; }
 @media (max-width:600px) { .task-view-controls { gap: 8px; } .task-view-controls .planner-tabs button { padding: 10px; } .tour-illustration { padding: 14px; } .tour-copy h3 { font-size: 24px; } .tour-copy p { font-size: 14px; } }
+
+/* Dialogs contain touch scrolling; initial container focus has no decorative ring. */
+.dialog { overscroll-behavior: contain; }
+.dialog:focus { outline: none; }
+.dialog::backdrop { touch-action: none; }
+[inert] { pointer-events: none; }
+
+/* Touch taps and form focus keep the field’s normal appearance. */
+.app-shell :is(input, select, textarea, button, summary, a) { -webkit-tap-highlight-color: transparent; }
