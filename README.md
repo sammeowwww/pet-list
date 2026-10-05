@@ -15,7 +15,7 @@ npm run dev
 Open http://127.0.0.1:5173. Navigation is **Today · Tasks · Home · Shop · Settings**, with Home centered and initially selected.
 
 - **Today:** manage planned tasks, overdue carryovers, and flexible General tasks. Statuses are To do, In progress, and Completed.
-- **Tasks:** General opens first with unfinished tasks that have neither a planned day nor a deadline. All tasks and Completed retain records grouped by completion date, or planned/deadline/creation date for unfinished work.
+- **Tasks:** General opens first as an undated scope. Use its dropdown for All categories or a named category, and combine it with All tasks or Completed. Unfinished tasks appear first; completed history is collapsed, searchable, and paginated.
 - **Home:** Bob walks slowly and rests in the meadow. Completing a task triggers ten seconds of faster pacing, hops, and pixel flowers. Repeated completions extend the celebration; undo removes only that completion's contribution. Your selected tab stays open.
 - **Shop:** adopt a black cat, white bunny, or hamster for 60 coins each, or buy the original six decorations and place or store them in Home's inventory.
 - **Settings:** Google sign-in, sync status, conflict review, backup export/import, sample tasks, reset controls, and a synced default task category (Personal initially). The header settings button opens this page.
@@ -26,7 +26,7 @@ Every new completion earns 5 coins, regardless of deadline or legacy effort. His
 
 ## Persistence and compatibility
 
-The original `little-by-little:v1` storage key remains unchanged. Backups now use version 3; version-1 and version-2 backups migrate automatically with Personal as the default category and no repeating tasks. Existing tasks, category values, coins, purchases, and placements load directly. Health, Errand, and Home extend the category choices. Temporary meadow celebrations never enter saved progress.
+The original `little-by-little:v1` storage key remains unchanged. Backups now use version 4; versions 1–3 migrate automatically with the six original category IDs and existing preferences. Missing preferences default to Personal and missing repeating definitions default to none. Existing tasks, category values, coins, purchases, and placements load directly. Health, Errand, and Home extend the category choices. Temporary meadow celebrations never enter saved progress.
 
 Guest progress belongs to the browser and origin. Google account progress is stored in D1, with a separate per-account device cache and durable outbox. Actions sync on reconnect and every five seconds while visible. The server rebases individual actions against its latest revision; independent task-field edits merge, conflicting edits remain in Settings for review. Receipts and revision checks prevent duplicate rewards. Offline undo retains the original ten-second intent window. Feeding uses the action's original Singapore day, so reconnecting after midnight does not move yesterday's meal into today.
 
@@ -106,3 +106,13 @@ Checks include SQL-backed concurrency/account-isolation tests and browser tests 
 ## Source repository
 
 https://github.com/sammeowwww/pet-list (private). The repository contains app source, tests, deployment configuration, art assets, and retained Figma references. Device progress, Cloudflare sessions, caches, credentials and generated build output are excluded by `.gitignore`. Cloudflare deployment currently uses Wrangler; pushing GitHub does not automatically deploy.
+
+## Editable categories, task views, and guide
+
+Tasks opens on General → All tasks. General is the undated scope across categories; it also includes completed undated tasks. All categories and named categories include scheduled and unscheduled tasks. Category changes retain the status filter and search. All tasks places undated unfinished work first, then ascending planned/deadline dates, with completed records collapsed by default. Completed uses the last 30 Singapore calendar days (including today), or All time. Each section displays 25 records with independent Show more controls; display pagination never deletes records or changes the 10,000-task storage limit.
+
+Settings manages stable category IDs, display names, and the default category. The original six IDs keep their badge palettes; new IDs use Personal styling. Removing a category atomically moves ordinary tasks, completed records, repeating definitions, and the default preference to an active replacement. Redirects remain in the synchronized catalog for stale offline task/preference commands. A moved repeating successor is marked touched, so delayed undo cannot discard it. Concurrent rejected category changes are retained in Settings for review. Backups now export version 4; versions 1–3 migrate with the six original categories and existing preferences.
+
+The companion panel starts expanded. Its minimise choice is stored locally per device, retaining active count, hunger summary, and the shop link; direct meadow feeding remains available. The eight-step illustrated walkthrough uses inert examples and existing pet art without changing the selected tab or planner. Welcome dismissal/completion and companion collapse are local UI preferences, not synchronized planner fields. Settings offers Replay walkthrough. Native modal dialogs supply focus trapping and Escape dismissal; motion reduction applies to the guide and app.
+
+Verification includes category migrations and redirect chains, SQL receipt contention, category replacement protecting recurring undo, all scope/status combinations, search, Singapore date boundaries, independent pagination, two-device offline category replacement and conflict review, backup import, guide completion/skip/replay/focus trapping, and companion collapse with meadow feeding. Desktop and phone captures are in `screenshots/petlist-v4-*`.

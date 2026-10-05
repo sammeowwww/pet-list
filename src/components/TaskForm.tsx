@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Coins } from 'lucide-react';
+import { useCategories } from './CategoryContext';
 import Dialog from './Dialog';
 import { deadlineFields, formatDay, formatDeadline, resolveDeadline } from '../domain/dates';
-import { CATEGORIES, type RepeatRule } from '../domain/repeat';
+import { type RepeatRule } from '../domain/repeat';
 import { TASK_REWARD, type Task, type TaskInput } from '../domain/state';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -11,6 +12,7 @@ export default function TaskForm({ task, day, today, defaultCategory, onSave, on
   task: Task | null; day: string | null; today: string; defaultCategory: Task['category'];
   onSave: (input: TaskInput) => void; onClose: () => void;
 }) {
+  const categories = useCategories();
   const fields = deadlineFields(task?.deadline ?? null);
   const [title, setTitle] = useState(task?.title ?? '');
   const [category, setCategory] = useState<Task['category']>(task?.category ?? defaultCategory);
@@ -44,7 +46,7 @@ export default function TaskForm({ task, day, today, defaultCategory, onSave, on
     <p className="eyebrow">{task ? 'A LITTLE ADJUSTMENT' : 'NEW TASK'}</p>
     <form className="task-form" onSubmit={submit}>
       <label>Task name<input data-autofocus required maxLength={160} value={title} onChange={event => setTitle(event.target.value)} placeholder="e.g. Water the plants" /></label>
-      <label>Category<select aria-label="Category" value={category} onChange={event => setCategory(event.target.value as Task['category'])}>{CATEGORIES.map(value => <option key={value}>{value}</option>)}</select></label>
+      <label>Category<select aria-label="Category" value={category} onChange={event => setCategory(event.target.value as Task['category'])}>{categories.map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
       <details className="optional-details"><summary>Optional details <span>date, repeat, deadline & notes</span></summary><div className="details-content">
         <label>{repeating ? 'Start date' : 'Plan for'}<input required={repeating} type="date" value={assignedDay} onChange={event => setAssignedDay(event.target.value)} /></label>
         {!repeating && <p className="field-hint">Leave both the planned date and deadline empty to keep this task in General.</p>}

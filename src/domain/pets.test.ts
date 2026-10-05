@@ -29,7 +29,7 @@ it('limits active pets and daily gifts to three despite swaps', () => {
 it('migrates old backups without altering historical rewards or purchases', () => {
   const task = { ...createTask({ title: 'Past', note: '', category: 'Personal', assignedDay: null, deadline: null }), status: 'done', completedAt: now, reward: 15, effort: 'large' };
   const migrated = appStateSchema.parse({ version: 1, tasks: [task], coins: 50, owned: ['bed'], placements: {}, bonusDays: [] });
-  expect(migrated.version).toBe(3); expect(migrated.coins).toBe(50);
+  expect(migrated.version).toBe(4); expect(migrated.coins).toBe(50);
   expect(migrated.tasks[0].reward).toBe(15); expect(migrated.owned).toEqual(['bed']); expect(migrated.pets.active).toEqual(['dog']);
 });
 it('merges independent fields and rejects conflicting task edits', () => {

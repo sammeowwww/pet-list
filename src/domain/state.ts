@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { localDay } from './dates';
 import { categorySchema, repeatRuleSchema, seriesSchema, type RepeatRule } from './repeat';
+import { categoryEntrySchema, initialCategories, validCategoryAssignments } from './categories';
 import { advanceRecurring } from './recurrence';
 
 export const STORAGE_KEY = 'little-by-little:v1';
@@ -71,11 +72,12 @@ const petStateSchema = z.object({
   }
 });
 export const appStateSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3)]).transform(() => 3 as const), tasks: z.array(taskSchema).max(10000),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).transform(() => 4 as const), tasks: z.array(taskSchema).max(10000),
   coins: z.number().int().nonnegative(), bonusDays: z.array(calendarDaySchema),
   owned: z.array(itemSchema), placements: z.partialRecord(itemSchema, placementSchema),
   pets: petStateSchema.default({ owned: ['dog'], active: ['dog'], fedDays: {}, gifts: {} }),
   preferences: z.object({ defaultCategory: categorySchema.default('Personal') }).default({ defaultCategory: 'Personal' }),
+  categories: z.array(categoryEntrySchema).max(1000).default(initialCategories),
   series: z.array(seriesSchema).max(10000).default([]),
 }).superRefine((state, context) => {
   if (new Set(state.tasks.map(task => task.id)).size !== state.tasks.length ||
@@ -83,6 +85,8 @@ export const appStateSchema = z.object({
       new Set(state.bonusDays).size !== state.bonusDays.length) {
     context.addIssue({ code: 'custom', message: 'Backup contains duplicate records.' });
   }
+  const assignedCategories = [state.preferences.defaultCategory, ...state.tasks.map(task => task.category), ...state.series.map(series => series.category)];
+  if (!validCategoryAssignments(state.categories, assignedCategories)) context.addIssue({ code: 'custom', message: 'Invalid category catalog or assignment.' });
   const occupied = new Set<string>();
   if (new Set(state.series.map(series => series.id)).size !== state.series.length ||
       state.tasks.some(task => task.seriesId !== null && !state.series.some(series => series.id === task.seriesId)) ||
@@ -110,7 +114,7 @@ export const PET_CATALOG: { id: PetId; name: string; price: number; description:
 export type TaskInput = Pick<Task, 'title' | 'note' | 'category' | 'assignedDay' | 'deadline'> & { effort?: Effort; repeat?: RepeatRule | null };
 
 export function emptyState(): AppState {
-  return { version: 3, tasks: [], coins: 0, bonusDays: [], owned: [], placements: {}, pets: { owned: ['dog'], active: ['dog'], fedDays: {}, gifts: {} }, preferences: { defaultCategory: 'Personal' }, series: [] };
+  return { version: 4, categories: initialCategories(), tasks: [], coins: 0, bonusDays: [], owned: [], placements: {}, pets: { owned: ['dog'], active: ['dog'], fedDays: {}, gifts: {} }, preferences: { defaultCategory: 'Personal' }, series: [] };
 }
 
 export function createTask(input: TaskInput, now = Date.now()): Task {

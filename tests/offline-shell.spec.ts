@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen')); });
+
 test('production shell reopens offline and retains a new task through reload', async ({ page, context }) => {
   await page.goto('http://127.0.0.1:8788/');
   await page.evaluate(async () => {

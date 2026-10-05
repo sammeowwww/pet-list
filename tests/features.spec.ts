@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen')); });
 import { createTask, emptyState } from '../src/domain/state';
 const NOW = Date.parse('2026-10-06T10:00:00+08:00');
 async function seed(page: Page, three = false) {
@@ -14,7 +16,7 @@ test('General, default category, recurrence, scheduling and deletion work togeth
   await expect(page.getByRole('navigation').getByRole('button', { name: 'Week', exact: true })).toHaveCount(0);
   await expect(page.locator('.general-card')).toContainText('Flexible idea');
   await page.locator('.general-card').getByRole('button', { name: 'View all →' }).click();
-  await expect(page.getByRole('button', { name: 'General', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Task scope')).toHaveValue('general');
   await page.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByLabel('Default task category').selectOption('Home');
   await page.reload();
@@ -33,7 +35,7 @@ test('General, default category, recurrence, scheduling and deletion work togeth
   await page.screenshot({ path: info.outputPath('repeat-form.png'), fullPage: true });
   await page.getByRole('button', { name: /^Add to/ }).click();
   await expect(page.locator('.history-card')).not.toContainText('Morning routine');
-  await page.getByRole('button', { name: 'All tasks', exact: true }).click();
+  await page.getByLabel('Task scope').selectOption('all');
   await page.getByRole('button', { name: 'Start Morning routine' }).click();
   await page.getByRole('button', { name: 'Complete Morning routine' }).click();
   await page.clock.runFor(10000);

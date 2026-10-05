@@ -80,3 +80,23 @@ it('deduplicates recurring rewards and successors under SQL contention, and prot
   expect((await snapshot(db, 'alice')).state.preferences.defaultCategory).toBe('Health');
   expect((await snapshot(db, 'bob')).state.preferences.defaultCategory).toBe('Personal');
 });
+
+it('commits category replacement and stale offline commands atomically with durable conflict receipts', async () => {
+  const { db } = fixture();
+  const input = { title: 'Offline general task', note: '', category: 'Personal', assignedDay: null, deadline: null };
+  await commitCommand(db, 'alice', command({ kind: 'create', taskId: 'one', input }), now);
+  const removal = command({ kind: 'removeCategory', categoryId: 'Personal', previous: 'Personal', replacementId: 'Work' });
+  await Promise.all([commitCommand(db, 'alice', removal, now), commitCommand(db, 'alice', removal, now)]);
+  await commitCommand(db, 'alice', command({ kind: 'create', taskId: 'offline', input }), now);
+  const final = await snapshot(db, 'alice');
+  expect(final.state.tasks.map(task => task.category)).toEqual(['Work', 'Work']);
+  expect(final.state.preferences.defaultCategory).toBe('Work');
+  expect(final.state.categories.find(category => category.id === 'Personal')?.replacementId).toBe('Work');
+  const renamed = command({ kind: 'renameCategory', categoryId: 'Personal', previous: 'Personal', name: 'Restored' });
+  const receipt = await commitCommand(db, 'alice', renamed, now);
+  expect(receipt.error).toContain('another device'); expect(await commitCommand(db, 'alice', renamed, now)).toEqual(receipt);
+  const competing = await Promise.all(['one-category', 'two-category'].map(categoryId => commitCommand(db, 'alice', command({ kind: 'createCategory', categoryId, name: 'Learning' }), now)));
+  expect(competing.filter(receipt => receipt.error === null)).toHaveLength(1);
+  expect((await snapshot(db, 'alice')).state.categories.filter(category => category.name === 'Learning')).toHaveLength(1);
+  expect((await snapshot(db, 'bob')).state.categories.find(category => category.id === 'Personal')?.replacementId).toBeNull();
+});

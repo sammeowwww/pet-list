@@ -1,3 +1,5 @@
+import { useCategories } from './CategoryContext';
+import { CATEGORIES } from '../domain/categories';
 import { Check, Clock3, MoreHorizontal, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { localDay, formatDeadline } from '../domain/dates';
@@ -14,6 +16,8 @@ export function Coin({ amount }: { amount: number }) {
 }
 
 export default function TaskRow({ task, now, actions, showStatus = false }: { task: Task; now: number; actions: TaskActions; showStatus?: boolean }) {
+  const category = useCategories().find(value => value.id === task.category);
+  const badge = CATEGORIES.some(id => id === task.category) ? task.category.toLowerCase() : 'personal';
   const [menu, setMenu] = useState(false);
   const future = !!task.seriesId && !!task.assignedDay && task.assignedDay > localDay(now);
   const done = task.status === 'done';
@@ -33,7 +37,7 @@ export default function TaskRow({ task, now, actions, showStatus = false }: { ta
     </button>
     <div className="task-copy">
       <h3>{task.title}</h3>
-      <div className="task-tags"><span className={`category ${task.category.toLowerCase()}`}>{task.category}</span>
+      <div className="task-tags"><span className={`category ${badge}`}>{category?.name ?? task.category}</span>
         {task.repeat && <span className="repeat-label">{future ? 'Upcoming · ' : ''}Repeats</span>}
         {showStatus && <span>{done ? 'Completed' : progress ? 'In progress' : 'To do'}</span>}
         {task.deadline && <span className={`deadline-label ${overdue ? 'overdue' : ''}`}><Clock3 size={12} />{overdue ? 'Overdue · ' : ''}{formatDeadline(task.deadline)}</span>}

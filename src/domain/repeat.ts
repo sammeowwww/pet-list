@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { addDays, calendarDate } from './dates';
 
-export const categorySchema = z.enum(['Personal', 'Work', 'Wellbeing', 'Health', 'Errand', 'Home']);
-export const CATEGORIES = categorySchema.options;
+import { categorySchema } from './categories';
+export { categorySchema, CATEGORIES } from './categories';
 export const repeatRuleSchema = z.object({
   mode: z.enum(['daily', 'weekdays', 'selected']),
   days: z.array(z.number().int().min(0).max(6)).max(7).default([]),

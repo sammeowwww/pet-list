@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Coins, ListTodo, House, PawPrint, RotateCcw, Settings, ShoppingBag, Sparkles, X } from 'lucide-react';
+import { CategoryContext } from './components/CategoryContext';
+import Walkthrough, { hasSeenTour, rememberTour } from './components/Walkthrough';
 import HomePage from './components/HomePage';
 import TasksPage from './components/TasksPage';
 import HistoryPage from './components/HistoryPage';
@@ -26,6 +28,8 @@ const NAVIGATION = [
 export default function App() {
   const planner = usePlannerState();
   const { state, dispatch, now, error, setError } = planner;
+  const [tour, setTour] = useState<'welcome' | 'replay' | null>(() => hasSeenTour() ? null : 'welcome');
+  function closeTour() { rememberTour(); setTour(null); }
   const [hearts, setHearts] = useState<Partial<Record<PetId, number>>>({});
   const today = localDay(now);
   const [tab, setTab] = useState<Tab>('home');
@@ -105,7 +109,7 @@ export default function App() {
     edit: task => setEditor({ task, day: task.assignedDay }), remove: setDeleting,
   };
 
-  return <div className="app-shell">
+  return <CategoryContext.Provider value={state.categories}><div className="app-shell">
     <header className="topbar"><button className="brand" onClick={() => setTab('home')} aria-label="PetList home"><span className="brand-mark"><PawPrint size={22} /></span><span>PetList</span></button><div className="top-actions"><div className="streak"><Sparkles size={17} /><span><b>{streak}</b> day streak</span></div><div className="balance" aria-label={`${state.coins} coins`}><span className="coin-dot" aria-hidden="true">$</span><b>{state.coins}</b></div><button className="avatar" aria-label="Settings and backups" onClick={() => setTab('settings')}><Settings size={19} /></button></div></header>
     <main>{planner.session.user && <button className="sync-banner" onClick={() => setTab('settings')}>{!planner.online ? "Offline · changes saved on this device" : planner.queued ? `${planner.queued} change(s) waiting to sync` : planner.syncError ? "Sync needs attention · open settings" : "Cloud planner · synced across your devices"}</button>}{error && <div className="error-banner" role="alert"><p>{error}</p><button className="text-button" onClick={() => setTab('settings')}>Open settings</button></div>}
       {tab === 'home' && <HomePage state={state} now={now} actions={actions} onAdd={() => addTask(today)} onAddGeneral={() => addTask(null)} onGeneral={() => setTab('tasks')} onDay={openDay} onShop={() => setTab('shop')} celebration={celebration} onClaim={() => dispatch({ kind: 'bonus' })} hearts={hearts} onFeed={feed} onActive={(pet, active) => dispatch({ kind: 'activatePet', pet, active })} decorating={decorating} setDecorating={setDecorating} selected={selected} setSelected={setSelected} onPlace={placeDecoration} />}
@@ -117,6 +121,7 @@ export default function App() {
     {pendingToast && toast && <div className="completion-toast" role="status"><img src="/dog.png" alt="" /><div><b>A little win!</b><span><Coins size={13} /> +{toast.reward} coins · {Math.max(1, Math.ceil((toast.expiresAt - now) / 1000))}s to undo</span></div><button className="text-button" onClick={() => undo(toast.id)}><RotateCcw size={13} /> Undo</button><button className="icon-button" aria-label="Dismiss reward message" onClick={() => setToast(null)}><X size={15} /></button></div>}
     {editor && <TaskForm task={editor.task} day={editor.day} today={today} defaultCategory={state.preferences.defaultCategory} onSave={saveTask} onClose={() => setEditor(null)} />}
     {deleting && <Dialog title="Delete this task?" onClose={() => setDeleting(null)}><p className="dialog-intro">“{deleting.title}” will be removed from your planner{deleting.seriesId && deleting.status !== 'done' ? ' and repetition will stop. Completed occurrences will stay.' : deleting.status === 'done' ? ' and history. Coins already earned are yours to keep.' : '.'}</p><div className="dialog-actions"><button className="secondary-button" onClick={() => setDeleting(null)}>Keep task</button><button className="primary-button danger" onClick={() => { dispatch({ kind: 'delete', taskId: deleting.id, before: deleting }); setDeleting(null); }}>Delete task</button></div></Dialog>}
-    {tab === 'settings' && <SettingsDialog planner={planner} onReview={reviewConflict} state={state} error={error} onReplace={replaceState} onError={setError} onClose={() => setTab('home')} />}
-  </div>;
+    {tab === 'settings' && <SettingsDialog planner={planner} onTour={() => setTour('replay')} onReview={reviewConflict} state={state} error={error} onReplace={replaceState} onError={setError} onClose={() => setTab('home')} />}
+    {tour && <Walkthrough welcome={tour === 'welcome'} onClose={closeTour} />}
+  </div></CategoryContext.Provider>;
 }

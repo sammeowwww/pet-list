@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { usePlannerState } from '../hooks/usePlannerState';
 import type { Command } from '../domain/commands';
+import type { Category } from '../domain/categories';
+
+function CategoryChangeReview({ command, categories }: { command: Command; categories: Category[] }) {
+  const action = command.action;
+  if (action.kind !== 'createCategory' && action.kind !== 'renameCategory' && action.kind !== 'removeCategory') return null;
+  const proposal = action.kind === 'createCategory' ? `Add “${action.name}”` : action.kind === 'renameCategory' ? `Rename “${action.previous}” to “${action.name}”` : `Move “${action.previous}” to “${categories.find(category => category.id === action.replacementId)?.name ?? 'a category that is no longer available'}” and remove it`;
+  return <details className="category-change-review"><summary>Review category change</summary><p><b>{proposal}</b></p><p>Your proposed change is kept here. Use Manage categories above to apply an updated choice.</p></details>;
+}
 
 type GoogleIdentity = { accounts: { id: { initialize: (options: { client_id: string; nonce: string; callback: (response: { credential: string }) => void }) => void; renderButton: (element: HTMLElement, options: { theme: string; size: string; text: string }) => void } } };
 declare global { interface Window { google?: GoogleIdentity } }
@@ -46,6 +54,6 @@ export default function AccountPanel({ planner, onReview }: { planner: ReturnTyp
       {!session.clientId && <p>Google sign-in is awaiting the app’s Google Client ID.</p>}<div ref={button} />
     </>}
     {(planner.syncError || loginError) && <p className="danger-text" role="status">{loginError ?? planner.syncError}</p>}
-    {planner.conflicts.length > 0 && <div className="sync-conflicts"><h4>Changes to review</h4>{planner.conflicts.map(conflict => <article key={conflict.command.id}><p>{conflict.message}</p>{conflict.command.action.kind === 'edit' && <button className="text-button" onClick={() => onReview(conflict.command)}>Review my task edit</button>}<button className="text-button" onClick={() => planner.dismissConflict(conflict.command.id)}>Dismiss notice</button></article>)}</div>}
+    {planner.conflicts.length > 0 && <div className="sync-conflicts"><h4>Changes to review</h4>{planner.conflicts.map(conflict => <article key={conflict.command.id}><p>{conflict.message}</p>{conflict.command.action.kind === 'edit' && <button className="text-button" onClick={() => onReview(conflict.command)}>Review my task edit</button>}<CategoryChangeReview command={conflict.command} categories={planner.state.categories} /><button className="text-button" onClick={() => planner.dismissConflict(conflict.command.id)}>Dismiss notice</button></article>)}</div>}
   </section>;
 }

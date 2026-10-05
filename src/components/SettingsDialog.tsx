@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Check, Download, Upload } from 'lucide-react';
-import { CATEGORIES } from '../domain/repeat';
+import { activeCategories } from '../domain/categories';
+import CategoryManager from './CategoryManager';
 import { emptyState, type AppState } from '../domain/state';
 import { exportBackup, parseBackup } from '../domain/storage';
 import { exampleState } from '../domain/examples';
@@ -8,9 +9,9 @@ import AccountPanel from './AccountPanel';
 import type { usePlannerState } from '../hooks/usePlannerState';
 import type { Command } from '../domain/commands';
 
-export default function SettingsDialog({ state, error, onReplace, onError, onClose, planner, onReview }: {
+export default function SettingsDialog({ state, error, onReplace, onError, onClose, planner, onReview, onTour }: {
   state: AppState; error: string | null; onReplace: (state: AppState) => void; onError: (message: string) => void; onClose: () => void;
-  planner: ReturnType<typeof usePlannerState>; onReview: (command: Command) => void;
+  onTour: () => void; planner: ReturnType<typeof usePlannerState>; onReview: (command: Command) => void;
 }) {
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +39,9 @@ export default function SettingsDialog({ state, error, onReplace, onError, onClo
   }
 
   return <div className="page simple-page settings-page"><section className="page-title history-title"><div><p className="eyebrow">MAKE IT YOURS</p><h1>Settings</h1></div></section><section className="history-card"><p className="dialog-intro">Dates and daily rewards use Singapore time.</p>
-    <section className="settings-section"><h3>Task preferences</h3><label className="preference-label">Default task category<select aria-label="Default task category" value={state.preferences.defaultCategory} onChange={event => planner.dispatch({ kind: 'preference', previous: state.preferences.defaultCategory, category: event.target.value as typeof state.preferences.defaultCategory })}>{CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></label><p>Used for new tasks. Existing tasks keep their category.</p></section>
+    <section className="settings-section"><h3>Task preferences</h3><label className="preference-label">Default task category<select aria-label="Default task category" value={state.preferences.defaultCategory} onChange={event => planner.dispatch({ kind: 'preference', previous: state.preferences.defaultCategory, category: event.target.value as typeof state.preferences.defaultCategory })}>{activeCategories(state.categories).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><p>Used for new tasks. Existing tasks keep their category.</p></section>
+    <CategoryManager state={state} dispatch={planner.dispatch} />
+    <section className="settings-section"><h3>A little help getting started</h3><p>Explore planning, rewards, feeding, and sync in an illustrated guide.</p><button className="secondary-button" onClick={onTour}>Replay walkthrough</button></section>
     <AccountPanel planner={planner} onReview={onReview} />
     <section className="settings-section"><h3>Keep a copy of your progress</h3><p>Export before clearing browser data or switching devices. Backups from the previous app still work.</p><div className="settings-actions"><button className="secondary-button" onClick={() => exportBackup(state)}><Download size={16} /> Export backup</button><button className="secondary-button" onClick={() => importRef.current?.click()}><Upload size={16} /> Import backup</button><input ref={importRef} type="file" accept=".json,application/json" hidden onChange={event => void importFile(event.target.files?.[0])} /></div></section>
     <section className="settings-section"><h3>Explore an example week</h3><p>Load sample tasks and a previous completion. This replaces your current planner.</p><button className="secondary-button" onClick={loadExample}>Try an example week</button></section>

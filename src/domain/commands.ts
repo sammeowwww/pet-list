@@ -3,6 +3,7 @@ import { appStateSchema, buyItem, claimBonus, completeTask, itemSchema, petIdSch
 import { buyPet, feedPet, setPetActive } from './pets';
 import { addPlannerTask, editPlannerTask, removeUntouchedSuccessor, stopSeries } from './recurrence';
 import { categorySchema, repeatRuleSchema } from './repeat';
+import { categoryNameSchema, resolveCategory, removeCategory, validateCategoryName } from './categories';
 import { localDay } from './dates';
 
 const id = z.string().min(1).max(160);
@@ -20,6 +21,9 @@ export const actionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('buyPet'), pet: petIdSchema }),
   z.object({ kind: z.literal('activatePet'), pet: petIdSchema, active: z.boolean() }),
   z.object({ kind: z.literal('feed'), pet: petIdSchema }),
+  z.object({ kind: z.literal('createCategory'), categoryId: categorySchema, name: categoryNameSchema }),
+  z.object({ kind: z.literal('renameCategory'), categoryId: categorySchema, previous: categoryNameSchema, name: categoryNameSchema }),
+  z.object({ kind: z.literal('removeCategory'), categoryId: categorySchema, previous: categoryNameSchema, replacementId: categorySchema }),
   z.object({ kind: z.literal('preference'), category: categorySchema, previous: categorySchema }),
   z.object({ kind: z.literal('replace'), state: appStateSchema, expectedRevision: z.number().int().nonnegative() }),
 ]);
@@ -33,6 +37,8 @@ export class CommandConflict extends Error {}
 function editedTask(state: AppState, taskId: string, before: TaskInput, input: TaskInput): AppState {
   const current = state.tasks.find(task => task.id === taskId);
   if (!current || current.status === 'done') throw new CommandConflict('This task was completed or removed on another device.');
+  before = canonicalInput(state, before);
+  input = canonicalInput(state, input);
   const merged = taskInputSchema.parse(current);
   for (const field of Object.keys(taskInputSchema.shape) as (keyof typeof merged)[]) {
     if (sameValue(input[field], before[field])) continue;
@@ -41,6 +47,8 @@ function editedTask(state: AppState, taskId: string, before: TaskInput, input: T
   }
   return editPlannerTask(state, taskId, merged);
 }
+
+function canonicalInput(state: AppState, input: TaskInput): TaskInput { return { ...input, category: resolveCategory(state.categories, input.category) }; }
 
 function sameValue(a: unknown, b: unknown): boolean { return JSON.stringify(a ?? null) === JSON.stringify(b ?? null); }
 
@@ -63,7 +71,7 @@ export function applyCommand(state: AppState, command: Command, now: number, rev
   const at = Math.min(command.at, now);
   switch (action.kind) {
     case 'create': {
-      return addPlannerTask(state, action.taskId, action.input, at);
+      return addPlannerTask(state, action.taskId, canonicalInput(state, action.input), at);
     }
     case 'edit': return editedTask(state, action.taskId, action.before, action.input);
     case 'status': {
@@ -95,9 +103,25 @@ export function applyCommand(state: AppState, command: Command, now: number, rev
     case 'buyPet': return requireTransition(state, buyPet(state, action.pet), 'This pet is owned, pending, or needs more coins.');
     case 'activatePet': return requireTransition(state, setPetActive(state, action.pet, action.active), 'Only three owned pets can be active.');
     case 'feed': return requireTransition(state, feedPet(state, action.pet, at), 'This pet is inactive or has already been fed that day.');
+    case 'createCategory': {
+      if (state.categories.some(category => category.id === action.categoryId)) throw new CommandConflict('This category ID already exists. Review it in Settings.');
+      if (state.categories.length >= 1000) throw new CommandConflict('The category catalog is full.');
+      const name = validateCategoryName(state.categories, action.name);
+      return { ...state, categories: [...state.categories, { id: action.categoryId, name, replacementId: null }] };
+    }
+    case 'renameCategory':
+    case 'removeCategory': {
+      const category = state.categories.find(category => category.id === action.categoryId && category.replacementId === null);
+      if (!category || category.name !== action.previous) throw new CommandConflict('This category changed on another device. Your change is kept in Settings for review.');
+      if (action.kind === 'removeCategory') return removeCategory(state, category.id, action.replacementId);
+      const name = validateCategoryName(state.categories, action.name, category.id);
+      return { ...state, categories: state.categories.map(value => value.id === category.id ? { ...value, name } : value) };
+    }
     case 'preference': {
-      if (state.preferences.defaultCategory !== action.previous && state.preferences.defaultCategory !== action.category) throw new CommandConflict('Your default category changed on another device. Review it in Settings.');
-      return { ...state, preferences: { ...state.preferences, defaultCategory: action.category } };
+      const previous = resolveCategory(state.categories, action.previous);
+      const category = resolveCategory(state.categories, action.category);
+      if (state.preferences.defaultCategory !== previous && state.preferences.defaultCategory !== category) throw new CommandConflict('Your default category changed on another device. Review it in Settings.');
+      return { ...state, preferences: { ...state.preferences, defaultCategory: category } };
     }
     case 'replace': {
       if (revision !== action.expectedRevision) throw new CommandConflict('Your cloud planner changed. Refresh before replacing it.');

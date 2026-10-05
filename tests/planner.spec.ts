@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen')); });
 import { readFile } from 'node:fs/promises';
 import { exampleState } from '../src/domain/examples';
 import { addDays, calendarDate, localDay, weekStart } from '../src/domain/dates';
@@ -101,7 +103,8 @@ test('weekly dates, optional deadline, edit, backlog and completion-date history
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath('week.png'), fullPage: true });
   await page.getByRole('navigation').getByRole('button', { name: 'Tasks', exact: true }).click();
-  await page.getByRole('button', { name: 'All tasks', exact: true }).click();
+  await page.getByLabel('Task scope').selectOption('all');
+  await page.locator('.completed-section > summary').click();
   await expect(page.locator('.history-day').filter({ hasText: /Tuesday,? 29 September/ })).toContainText('A win from last Tuesday');
   await expect(page.locator('.history-card')).toContainText('Make a little progress');
   await expect(page.locator('.task-row').filter({ hasText: 'Read a chapter' })).toContainText('To do');
@@ -167,7 +170,7 @@ test('dog paces, pauses while decorating and hidden, and honors reduced motion',
   await page.getByRole('button', { name: 'Feed Bob', exact: true }).click();
   const dog = page.getByTestId('meadow-dog');
   const before = await dog.getAttribute('data-x');
-  await page.clock.runFor(4000);
+  await page.clock.runFor(6000);
   expect(await dog.getAttribute('data-x')).not.toBe(before);
   await page.getByRole('button', { name: 'Decorate', exact: true }).click();
   const frozen = await dog.getAttribute('data-x');

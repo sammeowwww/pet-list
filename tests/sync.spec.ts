@@ -1,4 +1,6 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen')); });
 import { applyCommand, type Command } from '../src/domain/commands';
 import { emptyState, settleRewards } from '../src/domain/state';
 
@@ -7,6 +9,7 @@ test('two devices converge, keep offline edits through reload, and avoid duplica
   const receipts = new Map<string, { id: string; error: string | null }>();
   const user = { id: 'test-google-user', email: 'petlist@example.com', name: 'Test' };
   async function connect(context: BrowserContext) {
+    await context.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen'));
     await context.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname;
       if (path === '/api/session') return route.fulfill({ json: { user, clientId: 'test-client', nonce: null } });
@@ -48,15 +51,42 @@ test('two devices converge, keep offline edits through reload, and avoid duplica
   await b.getByLabel('Task name').fill('Phone offline task');
   await b.getByRole('button', { name: /^Add to/ }).click();
   await expect(b.locator('.task-row').filter({ hasText: 'Phone offline task' })).toBeVisible();
+  // Remove a category on the laptop while the phone still has commands using its old ID.
+  await a.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
+  await a.getByRole('button', { name: 'Remove Health' }).click();
+  await a.getByLabel('Replacement category').selectOption('Work');
+  await a.getByRole('button', { name: 'Move tasks and remove' }).click();
+  await expect(a.getByLabel('Default task category')).toHaveValue('Work');
+  await a.getByRole('navigation').getByRole('button', { name: 'Home', exact: true }).click();
   // The durable queue survives a fresh page even before reconnect; the shell itself is cached in production.
   const queued = await b.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('petlist:outbox:')));
   expect(queued).toHaveLength(1);
   await phone.setOffline(false); await b.reload();
   await expect(a.locator('.task-row').filter({ hasText: 'Phone offline task' })).toBeVisible({ timeout: 12_000 });
   expect(state.tasks).toHaveLength(2);
+  expect(state.tasks.map(task => task.category)).toEqual(['Work', 'Work']);
+  await expect(b.locator('.task-row .category')).toHaveText(['Work', 'Work']);
   await a.getByRole('button', { name: 'Feed · +3 coins', exact: true }).click();
   await expect(b.getByRole('button', { name: 'Fed today', exact: true })).toBeDisabled({ timeout: 12_000 });
   expect(state.coins).toBe(3);
+  await phone.setOffline(true);
+  await a.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
+  await a.getByRole('button', { name: 'Add category', exact: true }).click();
+  await a.getByLabel('Category name').fill('Learning');
+  await a.getByRole('button', { name: 'Save category' }).click();
+  await b.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
+  await b.getByRole('button', { name: 'Add category', exact: true }).click();
+  await b.getByLabel('Category name').fill('Learning');
+  await b.getByRole('button', { name: 'Save category' }).click();
+  await phone.setOffline(false);
+  await expect(b.locator('.sync-conflicts')).toContainText('already exists', { timeout: 12000 });
+  await b.getByText('Review category change', { exact: true }).click();
+  await expect(b.locator('.category-change-review')).toContainText('Learning');
+  expect(state.categories.filter(category => category.name === 'Learning')).toHaveLength(1);
+  await b.reload();
+  await b.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(b.locator('.sync-conflicts')).toContainText('already exists');
+
   await laptop.close(); await phone.close();
 });
 
