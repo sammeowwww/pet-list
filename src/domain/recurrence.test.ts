@@ -70,6 +70,17 @@ describe('recurring tasks and compatible planner preferences', () => {
     const deleted = applyCommand(edited, command({ kind: 'delete', taskId: next.id, before: edited.tasks[1] }), NOW);
     expect(settleRewards(deleted, NOW + 86400000).tasks).toEqual([settled.tasks[0]]);
   });
+  it('protects a successor that another device completed and then undid', () => {
+    const { state, c } = completed();
+    const settled = settleRewards(state, NOW + 10000);
+    const nextAt = NOW + 86400000;
+    const nextCompletion = command({ kind: 'complete', taskId: settled.tasks[1].id }, nextAt);
+    const nextDone = applyCommand(settled, nextCompletion, nextAt);
+    const nextUndo = command({ kind: 'undo', taskId: settled.tasks[1].id, completionId: nextCompletion.id }, nextAt + 1000);
+    const restored = applyCommand(nextDone, nextUndo, nextAt + 1000);
+    const parentUndo = command({ kind: 'undo', taskId: settled.tasks[0].id, completionId: c.id }, NOW + 1000);
+    expect(() => applyCommand(restored, parentUndo, nextAt + 2000)).toThrow('another device');
+  });
   it('replays an offline edit of a newly derived occurrence in command order', () => {
     const state = started(); const complete = command({ kind: 'complete', taskId: state.tasks[0].id });
     const preview = settleRewards(applyCommand(state, complete, NOW), NOW + 11000); const next = preview.tasks[1];

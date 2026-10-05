@@ -128,7 +128,7 @@ export function completeTask(state: AppState, id: string, now: number): AppState
   return { ...state, tasks: state.tasks.map(task => {
     if (task.id !== id || task.status === 'done') return task;
     return {
-      ...task, status: 'done', completedAt: now, reward: rewardFor(task, now),
+      ...task, status: 'done', completedAt: now, reward: rewardFor(task, now), occurrenceTouched: task.occurrenceTouched || !!task.seriesId,
       pending: { previousStatus: task.status, expiresAt: now + UNDO_MS }, completionPreviousStatus: task.status,
     };
   }) };
