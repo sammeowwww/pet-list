@@ -15,6 +15,47 @@ function task(title: string, category = 'Personal', overrides: Partial<Task> = {
   return { ...createTask({ title, category, note: '', assignedDay: null, deadline: null }, NOW), ...overrides };
 }
 const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true });
+test('every task list reorders immediately on start, completion and undo, including Home previews', async ({ page }, info) => {
+  const state = emptyState();
+  const planned = { assignedDay: '2026-10-06' };
+  state.tasks = [
+    task('Ongoing plan', 'Work', { ...planned, status: 'inprogress', createdAt: NOW - 20 }),
+    task('Finished plan', 'Work', { ...planned, status: 'done', completedAt: NOW - 10, reward: 5 }),
+    task('First plan', 'Work', { ...planned, createdAt: NOW - 2 }),
+    task('Second plan', 'Work', planned),
+    task('Ongoing idea', 'Personal', { status: 'inprogress', createdAt: NOW - 20 }),
+    ...Array.from({ length: 5 }, (_, index) => task(`Idea ${index + 1}`, 'Personal', { createdAt: NOW + index })),
+  ];
+  await seed(page, state);
+  const homeRows = page.locator('.today-card .task-row h3');
+  const original = ['First plan', 'Second plan', 'Ongoing plan', 'Finished plan'];
+  await expect(homeRows).toHaveText(original);
+  await expect(page.locator('.general-card .task-row h3')).toHaveText(['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5']);
+  await page.getByRole('button', { name: 'Start First plan', exact: true }).click();
+  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await page.getByRole('button', { name: 'Complete First plan', exact: true }).click();
+  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await page.locator('.today-card .task-row').filter({ hasText: 'First plan' }).getByRole('button', { name: /^Undo/ }).click();
+  await expect(page.locator('.today-card .task-row.progress h3')).toHaveText(['Ongoing plan', 'First plan']);
+  await page.screenshot({ path: info.outputPath('home-status-order.png'), fullPage: true });
+  await nav(page, 'Today').click();
+  const dailyRows = page.locator('.planner-card .task-row h3');
+  await expect(dailyRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await page.getByRole('button', { name: 'Complete Ongoing plan', exact: true }).click();
+  await expect(dailyRows).toHaveText(['Second plan', 'First plan', 'Ongoing plan', 'Finished plan']);
+  await page.locator('.planner-card .task-row').filter({ hasText: 'Ongoing plan' }).getByRole('button', { name: /^Undo/ }).click();
+  await expect(dailyRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await page.getByRole('button', { name: /^General/ }).click();
+  await expect(dailyRows).toHaveText(['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea']);
+  await page.getByRole('button', { name: 'Start Idea 1', exact: true }).click();
+  await expect(dailyRows).toHaveText(['Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea', 'Idea 1']);
+  await nav(page, 'Tasks').click();
+  await expect(page.locator('.history-day').filter({ hasText: 'Tuesday, 6 October' }).locator('.task-row h3')).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await page.reload();
+  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await expect(page.locator('.general-card .task-row h3')).toHaveText(['Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea']);
+});
+
 test('scopes preserve completion filters and search; history and unfinished work paginate independently', async ({ page }, info) => {
   const state = emptyState();
   for (const category of state.categories) state.tasks.push(task(`${category.name} pending`, category.id), task(`${category.name} flexible win`, category.id, { status: 'done', completedAt: NOW, reward: 5 }), task(`${category.name} dated win`, category.id, { status: 'done', completedAt: NOW, reward: 5, assignedDay: '2026-10-06' }));

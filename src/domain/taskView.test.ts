@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { scopedTasks, unfinishedTasks, completedTasks, taskGroups, type TaskScope } from './taskView';
+import { scopedTasks, unfinishedTasks, completedTasks, taskGroups, sortTasksByStatus, type TaskScope } from './taskView';
 import { createTask, type Task } from './state';
 
 const NOW = Date.parse('2026-10-06T00:00:00+08:00');
@@ -45,4 +45,13 @@ it('groups completed general work by Singapore completion day at midnight', () =
   const groups = taskGroups(records);
   expect(groups.map(group => group.day)).toEqual(['2026-10-05', '2026-10-06']);
   expect(groups[1].tasks.map(task => task.id)).toEqual(['planned', 'after']);
+});
+
+it('reorders status changes without changing saved record order and restores ordering on undo', () => {
+  const records = [task({ id: 'ongoing', status: 'inprogress', createdAt: NOW - 10 }), task({ id: 'finished', status: 'done', completedAt: NOW - 1, reward: 5 }), task({ id: 'first', createdAt: NOW - 2 }), task({ id: 'second' })];
+  expect(sortTasksByStatus(records).map(task => task.id)).toEqual(['first', 'second', 'ongoing', 'finished']);
+  const changed = records.map(task => task.id === 'first' ? { ...task, status: 'done' as const, completedAt: NOW, reward: 5 } : task);
+  expect(sortTasksByStatus(changed).map(task => task.id)).toEqual(['second', 'ongoing', 'first', 'finished']);
+  expect(sortTasksByStatus(records).map(task => task.id)).toEqual(['first', 'second', 'ongoing', 'finished']);
+  expect(records.map(task => task.id)).toEqual(['ongoing', 'finished', 'first', 'second']);
 });

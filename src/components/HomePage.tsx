@@ -1,6 +1,7 @@
 import { Check, Gift, Grid2X2, Plus, ShoppingBag, X } from 'lucide-react';
 import { formatDay, localDay } from '../domain/dates';
 import { percentComplete } from '../domain/progress';
+import { sortTasksByStatus } from '../domain/taskView';
 import { dailyBonusAvailable, generalTasks, tasksForDay, type AppState, type ItemId, type Placement, type PetId } from '../domain/state';
 import type { CelebrationEvent } from '../domain/celebration';
 import MeadowScene from './MeadowScene';
@@ -16,9 +17,9 @@ export default function HomePage({ state, now, actions, onAdd, onAddGeneral, onG
   onPlace: (id: ItemId, cell: Placement | null) => void;
 }) {
   const today = localDay(now);
-  const todayTasks = tasksForDay(state.tasks, today, today, now);
+  const todayTasks = sortTasksByStatus(tasksForDay(state.tasks, today, today, now));
   const completed = todayTasks.filter(task => task.status === 'done').length;
-  const general = generalTasks(state.tasks);
+  const general = sortTasksByStatus(generalTasks(state.tasks));
   const bonusAvailable = dailyBonusAvailable(state, now);
   const claimed = state.bonusDays.includes(today);
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Singapore', hour: 'numeric', hourCycle: 'h23' }).format(now));

@@ -2,6 +2,7 @@ import { CalendarDays, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { formatDay, localDay } from '../domain/dates';
 import { percentComplete, weekTasks } from '../domain/progress';
+import { sortTasksByStatus } from '../domain/taskView';
 import { EFFORT_REWARDS, tasksForDay, type AppState } from '../domain/state';
 import CalendarStrip from './CalendarStrip';
 import TaskRow, { Coin, type TaskActions } from './TaskRow';
@@ -14,7 +15,7 @@ export default function TasksPage({ state, now, day, onSelect, actions, onAdd }:
   const today = localDay(now);
   const selectedTasks = tasksForDay(state.tasks, day, today, now);
   const generalTasks = state.tasks.filter(task => !task.assignedDay && !task.deadline && task.status !== 'done');
-  const tasks = general ? generalTasks : selectedTasks;
+  const tasks = sortTasksByStatus(general ? generalTasks : selectedTasks);
   const weeklyTasks = weekTasks(state.tasks, day);
   const progress = percentComplete(weeklyTasks);
   const completed = weeklyTasks.filter(task => task.status === 'done').length;
