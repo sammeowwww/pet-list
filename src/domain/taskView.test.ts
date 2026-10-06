@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { scopedTasks, unfinishedTasks, completedTasks, type TaskScope } from './taskView';
+import { scopedTasks, unfinishedTasks, completedTasks, taskGroups, type TaskScope } from './taskView';
 import { createTask, type Task } from './state';
 
 const NOW = Date.parse('2026-10-06T00:00:00+08:00');
@@ -30,4 +30,19 @@ it('includes exactly 30 Singapore calendar days and retains older history in all
 it('sorts undated unfinished work first then planned or deadline dates ascending', () => {
   const records = [task({ id: 'later', assignedDay: '2026-10-09' }), task({ id: 'due', deadline: '2026-10-06T16:00:00Z' }), task({ id: 'general' }), task({ id: 'first', assignedDay: '2026-10-06' })];
   expect(unfinishedTasks(records).map(task => task.id)).toEqual(['general', 'first', 'due', 'later']);
+});
+
+it('merges statuses under one completion/planned day and ranks to-do, ongoing, then completed', () => {
+  const records = [task({ id: 'done', status: 'done', completedAt: NOW, assignedDay: '2026-10-05', reward: 5 }), task({ id: 'ongoing', status: 'inprogress', assignedDay: '2026-10-06' }), task({ id: 'todo', assignedDay: '2026-10-06' }), task({ id: 'undated' }), task({ id: 'tomorrow', assignedDay: '2026-10-07' })];
+  const groups = taskGroups(records);
+  expect(groups.map(group => group.day)).toEqual([null, '2026-10-06', '2026-10-07']);
+  expect(groups[1].tasks.map(task => task.id)).toEqual(['todo', 'ongoing', 'done']);
+  expect(records.map(task => task.id)).toEqual(['done', 'ongoing', 'todo', 'undated', 'tomorrow']);
+  expect(taskGroups(records.filter(task => task.status !== 'done'))[1].tasks.map(task => task.id)).toEqual(['todo', 'ongoing']);
+});
+it('groups completed general work by Singapore completion day at midnight', () => {
+  const records = [task({ id: 'before', status: 'done', completedAt: Date.parse('2026-10-05T15:59:59Z'), reward: 5 }), task({ id: 'after', status: 'done', completedAt: Date.parse('2026-10-05T16:00:00Z'), reward: 5 }), task({ id: 'planned', assignedDay: '2026-10-06' })];
+  const groups = taskGroups(records);
+  expect(groups.map(group => group.day)).toEqual(['2026-10-05', '2026-10-06']);
+  expect(groups[1].tasks.map(task => task.id)).toEqual(['planned', 'after']);
 });

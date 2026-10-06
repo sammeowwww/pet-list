@@ -104,7 +104,7 @@ test('weekly dates, optional deadline, edit, backlog and completion-date history
   await page.screenshot({ path: testInfo.outputPath('week.png'), fullPage: true });
   await page.getByRole('navigation').getByRole('button', { name: 'Tasks', exact: true }).click();
   await page.getByLabel('Task scope').selectOption('all');
-  await page.locator('.completed-section > summary').click();
+  await expect(page.getByRole('switch', { name: 'Show completed' })).toBeChecked();
   await expect(page.locator('.history-day').filter({ hasText: /Tuesday,? 29 September/ })).toContainText('A win from last Tuesday');
   await expect(page.locator('.history-card')).toContainText('Make a little progress');
   await expect(page.locator('.task-row').filter({ hasText: 'Read a chapter' })).toContainText('To do');

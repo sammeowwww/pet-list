@@ -21,6 +21,7 @@ test('General, default category, recurrence, scheduling and deletion work togeth
   await page.getByLabel('Default task category').selectOption('Home');
   await page.reload();
   await page.getByRole('navigation').getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByLabel('Task scope').selectOption('general');
   await page.getByRole('button', { name: 'Add general task' }).click();
   await expect(page.getByLabel('Category', { exact: true })).toHaveValue('Home');
   await page.getByLabel('Task name').fill('Morning routine');
@@ -53,6 +54,7 @@ test('General, default category, recurrence, scheduling and deletion work togeth
   await expect(page.locator('.task-row')).toHaveCount(1);
   await page.reload();
   await page.getByRole('navigation').getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByLabel('Task scope').selectOption('general');
   await expect(page.locator('.history-card')).toContainText('Flexible idea');
   await page.getByRole('button', { name: 'Options for Flexible idea' }).click();
   await page.getByRole('button', { name: 'Edit task', exact: true }).click();

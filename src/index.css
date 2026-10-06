@@ -358,3 +358,18 @@ input:focus, select:focus, textarea:focus { outline: none; box-shadow: none; }
 
 /* Touch taps and form focus keep the field’s normal appearance. */
 .app-shell :is(input, select, textarea, button, summary, a) { -webkit-tap-highlight-color: transparent; }
+
+/* Tasks creation stays centered beneath the heading on every screen. */
+.page-title.tasks-title { align-items: center; flex-direction: column; gap: 18px; padding-bottom: 0; }
+.tasks-title > button { position: static; transform: none; }
+.task-view-controls .pixel-toggle { margin-left: auto; }
+.pixel-toggle { display: flex; align-items: center; gap: 10px; position: relative; cursor: pointer; min-height: 44px; font: 500 17px 'Pixelify Sans'; }
+.pixel-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.pixel-toggle-track { width: 42px; height: 24px; flex-shrink: 0; border: 2px solid #314a3c; background: #d6ddc9; box-shadow: 2px 2px 0 #314a3c; position: relative; }
+.pixel-toggle-track::after { content: ''; position: absolute; width: 14px; height: 14px; top: 3px; left: 3px; background: #fffdf6; border: 2px solid #314a3c; }
+.pixel-toggle input:checked + .pixel-toggle-track { background: #568568; }
+.pixel-toggle input:checked + .pixel-toggle-track::after { left: 21px; background: #f4ca61; }
+.task-pagination { display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width:600px) { .task-view-controls .pixel-toggle { margin-left: 0; } }
+
+.tasks-title > .primary-button { padding: 12px 20px; width: auto; font-size: 14px; min-height: 44px; }

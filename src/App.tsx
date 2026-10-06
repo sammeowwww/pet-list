@@ -32,6 +32,7 @@ export default function App() {
   function closeTour() { rememberTour(); setTour(null); }
   const [hearts, setHearts] = useState<Partial<Record<PetId, number>>>({});
   const today = localDay(now);
+  const [taskScope, setTaskScope] = useState('all');
   const [tab, setTab] = useState<Tab>('home');
   const [day, setDay] = useState(today);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -53,7 +54,7 @@ export default function App() {
   }, [today]);
 
   function openDay(date: string) { setDay(date); setTab('today'); }
-  function selectTab(next: Tab) { if (next === 'today') setDay(today); setTab(next); }
+  function selectTab(next: Tab) { if (next === 'tasks') setTaskScope('all'); if (next === 'today') setDay(today); setTab(next); }
   function addTask(date: string | null) { setEditor({ task: null, day: date }); }
 
   function finish(id: string) {
@@ -112,9 +113,9 @@ export default function App() {
   return <CategoryContext.Provider value={state.categories}><div className="app-shell">
     <header className="topbar"><button className="brand" onClick={() => setTab('home')} aria-label="PetList home"><span className="brand-mark"><PawPrint size={22} /></span><span>PetList</span></button><div className="top-actions"><div className="streak"><Sparkles size={17} /><span><b>{streak}</b> day streak</span></div><div className="balance" aria-label={`${state.coins} coins`}><span className="coin-dot" aria-hidden="true">$</span><b>{state.coins}</b></div><button className="avatar" aria-label="Settings and backups" onClick={() => setTab('settings')}><Settings size={19} /></button></div></header>
     <main>{planner.session.user && <button className="sync-banner" onClick={() => setTab('settings')}>{!planner.online ? "Offline · changes saved on this device" : planner.queued ? `${planner.queued} change(s) waiting to sync` : planner.syncError ? "Sync needs attention · open settings" : "Cloud planner · synced across your devices"}</button>}{error && <div className="error-banner" role="alert"><p>{error}</p><button className="text-button" onClick={() => setTab('settings')}>Open settings</button></div>}
-      {tab === 'home' && <HomePage state={state} now={now} actions={actions} onAdd={() => addTask(today)} onAddGeneral={() => addTask(null)} onGeneral={() => setTab('tasks')} onDay={openDay} onShop={() => setTab('shop')} celebration={celebration} onClaim={() => dispatch({ kind: 'bonus' })} hearts={hearts} onFeed={feed} onActive={(pet, active) => dispatch({ kind: 'activatePet', pet, active })} decorating={decorating} setDecorating={setDecorating} selected={selected} setSelected={setSelected} onPlace={placeDecoration} />}
+      {tab === 'home' && <HomePage state={state} now={now} actions={actions} onAdd={() => addTask(today)} onAddGeneral={() => addTask(null)} onGeneral={() => { setTaskScope('general'); setTab('tasks'); }} onDay={openDay} onShop={() => setTab('shop')} celebration={celebration} onClaim={() => dispatch({ kind: 'bonus' })} hearts={hearts} onFeed={feed} onActive={(pet, active) => dispatch({ kind: 'activatePet', pet, active })} decorating={decorating} setDecorating={setDecorating} selected={selected} setSelected={setSelected} onPlace={placeDecoration} />}
       {tab === 'today' && <TasksPage key={tab} state={state} now={now} day={day} onSelect={setDay} actions={actions} onAdd={addTask} />}
-      {tab === 'tasks' && <HistoryPage state={state} now={now} actions={actions} onAdd={() => addTask(null)} />}
+      {tab === 'tasks' && <HistoryPage key={taskScope} initialScope={taskScope} state={state} now={now} actions={actions} onAdd={() => addTask(null)} />}
       {tab === 'shop' && <ShopPage state={state} onBuy={id => dispatch({ kind: 'buyItem', item: id })} onBuyPet={pet => dispatch({ kind: 'buyPet', pet })} onDecorate={beginDecorating} />}
     </main>
     <nav className="bottom-nav" aria-label="Main navigation">{NAVIGATION.map(item => <button key={item.id} className={`${tab === item.id ? 'active' : ''} ${item.id === 'home' ? 'home-button' : ''}`} onClick={() => selectTab(item.id)} aria-current={tab === item.id ? 'page' : undefined}><span><item.icon size={21} /></span>{item.label}</button>)}</nav>
