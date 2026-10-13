@@ -15,6 +15,30 @@ function task(title: string, category = 'Personal', overrides: Partial<Task> = {
   return { ...createTask({ title, category, note: '', assignedDay: null, deadline: null }, NOW), ...overrides };
 }
 const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true });
+test('Tasks shows undated work then newest dates, including across Show more', async ({ page }) => {
+  const state = emptyState();
+  state.tasks = [
+    task('Flexible plan'),
+    ...Array.from({ length: 27 }, (_, index) => task(`Plan ${index + 1}`, 'Work', { assignedDay: `2026-10-${String(index + 1).padStart(2, '0')}` })),
+    task('Finished on the sixth', 'Work', { assignedDay: '2026-10-02', status: 'done', completedAt: NOW, reward: 5 }),
+  ];
+  await seed(page, state);
+  await nav(page, 'Tasks').click();
+  const headings = page.locator('.history-day > h2');
+  await expect(headings.first()).toHaveText('Undated tasks');
+  await expect(headings.nth(1)).toHaveText('Tuesday, 27 October 2026');
+  await expect(headings.last()).toHaveText('Sunday, 4 October 2026');
+  await expect(page.getByRole('heading', { name: 'Thursday, 1 October 2026' })).toHaveCount(0);
+  const sixth = page.locator('.history-day').filter({ has: page.getByRole('heading', { name: 'Tuesday, 6 October 2026' }) });
+  await expect(sixth.locator('.task-row h3')).toHaveText(['Plan 6', 'Finished on the sixth']);
+  await page.getByRole('button', { name: /^Show more unfinished/ }).click();
+  await expect(headings.last()).toHaveText('Thursday, 1 October 2026');
+  await expect(headings).toHaveCount(28);
+  await page.getByRole('button', { name: 'Completed', exact: true }).click();
+  await expect(headings).toHaveText(['Tuesday, 6 October 2026']);
+  await expect(sixth.locator('.task-row h3')).toHaveText(['Finished on the sixth']);
+});
+
 test('every task list reorders immediately on start, completion and undo, including Home previews', async ({ page }, info) => {
   const state = emptyState();
   const planned = { assignedDay: '2026-10-06' };
