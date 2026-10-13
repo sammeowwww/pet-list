@@ -6,8 +6,8 @@ import type { AppState, Task } from '../domain/state';
 import { activeCategories } from '../domain/categories';
 import TaskRow, { type TaskActions } from './TaskRow';
 
-function TaskGroups({ tasks, completedOnly, now, actions }: { tasks: Task[]; completedOnly: boolean; now: number; actions: TaskActions }) {
-  return taskGroups(tasks, completedOnly).map(group => <section className="history-day" key={group.day ?? 'undated'}>
+function TaskGroups({ tasks, now, actions }: { tasks: Task[]; now: number; actions: TaskActions }) {
+  return taskGroups(tasks).map(group => <section className="history-day" key={group.day ?? 'undated'}>
     <h2>{group.day ? formatDay(group.day, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Undated tasks'}</h2>
     <div className="task-list large">{group.tasks.map(task => <TaskRow key={task.id} task={task} now={now} actions={actions} showStatus />)}</div>
   </section>);
@@ -39,7 +39,7 @@ export default function HistoryPage({ state, now, actions, onAdd, initialScope =
         {filter === 'all' && <label className="pixel-toggle"><input type="checkbox" role="switch" checked={showCompleted} onChange={event => { setShowCompleted(event.target.checked); setCompletedLimit(25); }} /><span className="pixel-toggle-track" aria-hidden="true" /><span>Show completed</span></label>}
       </div>
       <div className="task-search-row"><label className="task-search"><Search size={17} aria-hidden="true" /><input aria-label="Search tasks" type="search" placeholder="Search tasks and notes" value={search} onChange={event => { setSearch(event.target.value); resetLimits(); }} /></label>{filter === 'completed' && <label className="history-range"><span className="sr-only">Completed date range</span><select value={range} onChange={event => { setRange(event.target.value); resetLimits(); }}><option value="recent">Last 30 days</option><option value="all">All time</option></select></label>}</div>
-      <TaskGroups tasks={visible} completedOnly={filter === 'completed'} now={now} actions={actions} />
+      <TaskGroups tasks={visible} now={now} actions={actions} />
       <div className="task-pagination">
         {filter === 'all' && <ShowMore total={unfinished.length} shown={unfinishedLimit} label="unfinished" onMore={() => setUnfinishedLimit(limit => limit + 25)} />}
         {completedVisible && <ShowMore total={completed.length} shown={completedLimit} label="completed" onMore={() => setCompletedLimit(limit => limit + 25)} />}

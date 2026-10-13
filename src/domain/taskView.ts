@@ -11,7 +11,7 @@ export function scopedTasks(tasks: Task[], scope: TaskScope, search: string): Ta
   });
 }
 export function unfinishedTasks(tasks: Task[]): Task[] {
-  return tasks.filter(task => task.status !== 'done').sort((a, b) => (plannedDay(a) ?? '').localeCompare(plannedDay(b) ?? '') || compareTaskStatus(a, b));
+  return tasks.filter(task => task.status !== 'done').sort((a, b) => compareTaskDays(plannedDay(a), plannedDay(b)) || compareTaskStatus(a, b));
 }
 export function completedTasks(tasks: Task[], now: number, recent: boolean): Task[] {
   const today = localDay(now), first = addDays(today, -29);
@@ -34,7 +34,12 @@ export function sortTasksByStatus(tasks: readonly Task[]): Task[] {
 export function groupedTaskDay(task: Task): string | null {
   return task.status === 'done' ? localDay(task.completedAt!) : plannedDay(task);
 }
-export function taskGroups(tasks: Task[], newestFirst = false): { day: string | null; tasks: Task[] }[] {
+function compareTaskDays(a: string | null, b: string | null): number {
+  if (a === null) return b === null ? 0 : -1;
+  if (b === null) return 1;
+  return b.localeCompare(a);
+}
+export function taskGroups(tasks: Task[]): { day: string | null; tasks: Task[] }[] {
   const groups = new Map<string | null, Task[]>();
   for (const task of tasks) {
     const day = groupedTaskDay(task);
@@ -42,7 +47,7 @@ export function taskGroups(tasks: Task[], newestFirst = false): { day: string | 
     group.push(task);
     groups.set(day, group);
   }
-  return [...groups.entries()].sort(([a], [b]) => ((a ?? '').localeCompare(b ?? '')) * (newestFirst ? -1 : 1)).map(([day, tasks]) => ({
+  return [...groups.entries()].sort(([a], [b]) => compareTaskDays(a, b)).map(([day, tasks]) => ({
     day, tasks: sortTasksByStatus(tasks),
   }));
 }
