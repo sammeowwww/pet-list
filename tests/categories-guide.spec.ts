@@ -15,6 +15,39 @@ function task(title: string, category = 'Personal', overrides: Partial<Task> = {
   return { ...createTask({ title, category, note: '', assignedDay: null, deadline: null }, NOW), ...overrides };
 }
 const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true });
+test('Home scrolls through every planned task while keeping progress and bonus visible', async ({ page }, info) => {
+  const state = emptyState();
+  state.tasks = Array.from({ length: 7 }, (_, index) => task(`Today ${index + 1}`, 'Work', { assignedDay: '2026-10-06', createdAt: NOW + index }));
+  await seed(page, state);
+  const list = page.getByRole('region', { name: "Today's tasks" });
+  await expect(list.locator('.task-row h3')).toHaveText(['Today 1', 'Today 2', 'Today 3', 'Today 4', 'Today 5', 'Today 6', 'Today 7']);
+  expect(await list.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  await expect(page.locator('.today-card .task-scroll-hint')).toHaveText('Scroll to see all 7 tasks');
+  await list.focus();
+  await page.keyboard.press('End');
+  await expect.poll(() => list.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect(page.locator('.today-card .progress-track')).toBeVisible();
+  await expect(page.locator('.today-card .daily-bonus')).toBeVisible();
+  await list.getByRole('button', { name: 'Options for Today 4' }).click();
+  const firstMenu = await page.locator('.today-card .task-menu').boundingBox();
+  const bounds = await list.boundingBox();
+  expect(firstMenu && bounds && firstMenu.y >= bounds.y && firstMenu.y + firstMenu.height <= bounds.y + bounds.height).toBeTruthy();
+  await page.getByRole('button', { name: 'Close task options' }).click();
+  await page.evaluate(() => {
+    const card = document.querySelector('.today-card');
+    if (card) window.scrollTo(0, window.scrollY + card.getBoundingClientRect().top - 90);
+  });
+  await page.locator('.today-card').screenshot({ path: info.outputPath('home-scroll-card.png') });
+  await list.getByRole('button', { name: 'Options for Today 7' }).click();
+  await expect(page.locator('.today-card .task-menu')).toBeVisible();
+  const menu = await page.locator('.today-card .task-menu').boundingBox();
+  const scrolledBounds = await list.boundingBox();
+  expect(menu && scrolledBounds && menu.y >= scrolledBounds.y && menu.y + menu.height <= scrolledBounds.y + scrolledBounds.height).toBeTruthy();
+  await page.locator('.today-card .task-menu').getByRole('button', { name: 'Mark done' }).click();
+  await expect(page.locator('.today-card .task-row.done h3')).toHaveText('Today 7');
+  await expect(page.locator('.today-card .section-heading h2')).toHaveText('1 of 7 complete');
+});
+
 test('Tasks shows undated work then newest dates, including across Show more', async ({ page }) => {
   const state = emptyState();
   state.tasks = [
@@ -52,6 +85,7 @@ test('every task list reorders immediately on start, completion and undo, includ
   ];
   await seed(page, state);
   const homeRows = page.locator('.today-card .task-row h3');
+  await expect(page.getByRole('region', { name: "Today's tasks" })).toHaveCount(0);
   const original = ['First plan', 'Second plan', 'Ongoing plan', 'Finished plan'];
   await expect(homeRows).toHaveText(original);
   await expect(page.locator('.general-card .task-row h3')).toHaveText(['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5']);

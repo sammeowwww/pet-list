@@ -1,7 +1,7 @@
 import { useCategories } from './CategoryContext';
 import { CATEGORIES } from '../domain/categories';
 import { Check, Clock3, MoreHorizontal, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { localDay, formatDeadline } from '../domain/dates';
 import { EFFORT_REWARDS, isOverdue, type Task } from '../domain/state';
 
@@ -15,10 +15,21 @@ export function Coin({ amount }: { amount: number }) {
   return <span className="coin"><span className="coin-dot" aria-hidden="true">$</span>{amount}</span>;
 }
 
+function shouldOpenMenuAbove(button: HTMLButtonElement | null): boolean {
+  if (!button) return false;
+  const list = button.closest('.home-today-task-list.is-scrollable');
+  if (!list) return false;
+  const bounds = list.getBoundingClientRect();
+  const anchor = button.getBoundingClientRect();
+  return anchor.top - bounds.top > bounds.bottom - anchor.bottom;
+}
+
 export default function TaskRow({ task, now, actions, showStatus = false }: { task: Task; now: number; actions: TaskActions; showStatus?: boolean }) {
   const category = useCategories().find(value => value.id === task.category);
   const badge = CATEGORIES.some(id => id === task.category) ? task.category.toLowerCase() : 'personal';
   const [menu, setMenu] = useState(false);
+  const [menuAbove, setMenuAbove] = useState(false);
+  const optionsButton = useRef<HTMLButtonElement>(null);
   const future = !!task.seriesId && !!task.assignedDay && task.assignedDay > localDay(now);
   const done = task.status === 'done';
   const progress = task.status === 'inprogress';
@@ -29,6 +40,11 @@ export default function TaskRow({ task, now, actions, showStatus = false }: { ta
   function advanceStatus() {
     if (progress) actions.complete(task.id);
     else actions.status(task.id, 'inprogress');
+  }
+
+  function toggleMenu() {
+    if (!menu) setMenuAbove(shouldOpenMenuAbove(optionsButton.current));
+    setMenu(!menu);
   }
 
   return <article className={`task-row ${progress ? 'progress' : task.status}`} data-task-id={task.id}>
@@ -47,9 +63,9 @@ export default function TaskRow({ task, now, actions, showStatus = false }: { ta
     </div>
     {progress && !showStatus && <span className="status-label"><Clock3 size={14} /> In progress</span>}
     <Coin amount={reward} />
-    {!task.pending && <div className="task-options"><button className="icon-button" aria-label={`Options for ${task.title}`} onClick={() => setMenu(!menu)} aria-expanded={menu}><MoreHorizontal size={17} /></button>
+    {!task.pending && <div className="task-options"><button ref={optionsButton} className="icon-button" aria-label={`Options for ${task.title}`} onClick={toggleMenu} aria-expanded={menu}><MoreHorizontal size={17} /></button>
       {menu && <><button className="menu-dismiss" aria-label="Close task options" onClick={() => setMenu(false)} />
-        <div className="task-menu">
+        <div className={`task-menu${menuAbove ? ' above' : ''}`}>
           {!done && <><button disabled={future} onClick={() => { actions.complete(task.id); setMenu(false); }}><Check size={14} /> Mark done</button><button onClick={() => { actions.edit(task); setMenu(false); }}><Pencil size={14} /> Edit task</button></>}
           {progress && <button onClick={() => { actions.status(task.id, 'todo'); setMenu(false); }}><Play size={14} /> Back to to do</button>}
           <button className="danger-text" onClick={() => { actions.remove(task); setMenu(false); }}><Trash2 size={14} /> Delete task</button>

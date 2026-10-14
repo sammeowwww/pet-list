@@ -73,6 +73,9 @@ h1 { font-family: 'Pixelify Sans'; font-size: clamp(35px, 4vw, 50px); line-heigh
 .progress-track { height: 7px; background: #e8e8de; margin: 19px 0 11px; overflow: hidden; }
 .progress-track span { display: block; height: 100%; background: #6e9e68; transition: width .3s; }
 .task-list { display: flex; flex-direction: column; }
+.home-today-task-list.is-scrollable { max-height: 280px; overflow-y: auto; scrollbar-gutter: stable; padding-right: 6px; }
+.home-today-task-list.is-scrollable:focus-visible { outline: 2px solid #c7a354; outline-offset: 2px; }
+.task-scroll-hint { margin: 8px 0 0; color: #748078; font-size: 11px; }
 .task-row { min-height: 70px; border-bottom: 1px solid #e6e5da; display: flex; align-items: center; gap: 12px; padding: 10px 0; }
 .task-row:last-child { border-bottom: 0; }
 .status-button { flex: 0 0 24px; width: 24px; height: 24px; border: 2px solid #a7aea7; background: #fff; display: grid; place-items: center; border-radius: 5px; color: white; padding: 0; }
@@ -189,6 +192,7 @@ svg { flex-shrink: 0; }
 .task-options { position: relative; margin-right: -5px; }
 .menu-dismiss { position: fixed; inset: 0; background: none; border: 0; z-index: 98; cursor: default; }
 .task-menu { position: absolute; right: 0; top: 28px; width: 155px; padding: 5px; border: 1px solid #bfccbb; background: #fffdf6; border-radius: 6px; box-shadow: 3px 3px 0 #d2d8c8; z-index: 99; }
+.task-menu.above { top: auto; bottom: 28px; }
 .task-menu button { display: flex; gap: 8px; align-items: center; text-align: left; width: 100%; padding: 8px; background: transparent; border: 0; font-size: 12px; border-radius: 4px; }
 .task-menu button:hover { background: #eaf0e4; }
 .danger-text { color: #a46854 !important; }
