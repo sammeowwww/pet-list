@@ -32,10 +32,9 @@ function rosterPositions(count: number, decorations: Rectangle[], gap: number): 
   return search([]) ?? [];
 }
 
-export function advancePets(pets: Partial<Record<PetId, WalkState>>, active: PetId[], elapsed: number, celebrating: boolean, decorations: Rectangle[], hungry: PetId[] = [], gap = 90) {
+export function advancePets(pets: Partial<Record<PetId, WalkState>>, active: PetId[], elapsed: number, celebrating: boolean, decorations: Rectangle[], gap = 90) {
   const next = { ...pets };
   for (const pet of active) {
-    if (!celebrating && hungry.includes(pet)) continue;
     const other = active.filter(id => id !== pet && next[id]).map(id => petObstacle(next[id]!, gap));
     next[pet] = advanceWalk(next[pet]!, elapsed, celebrating, [...decorations, ...other]);
   }

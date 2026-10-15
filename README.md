@@ -22,7 +22,7 @@ Google sign-in is optional for this demo. If enabled for your Google account, si
 | --- | --- |
 | **Today** | Pick a date, see planned tasks and overdue work, create tasks, and move them through To do → In progress → Completed. Use the General view for flexible work. |
 | **Tasks** | See all categories by default, or choose **General** for tasks without a date or deadline. Filter to one category, search names and notes, show or hide completed rows, and browse older completed work. Each day's tasks are ordered To do, In progress, then Completed. |
-| **Home** | See your day's plan, the animated meadow, active pets, and a short list of General to-dos. A task completion gives your pets a brief celebration. Feed a hungry pet by clicking or tapping it, or use its feeding card. |
+| **Home** | See your day's plan, the animated meadow, active pets, and a short list of General to-dos. A task completion gives your pets a brief celebration. Feed a hungry pet by clicking or tapping it, or use its feeding card. Choose **Pets** below the meadow to remove or swap companions. |
 | **Shop** | Spend earned coins on pets and decorations. Bob starts free; you can keep up to three pets in the meadow and place purchased decorations there. |
 | **Settings** | Replay the walkthrough, edit categories and your default category, sign in for sync, review sync conflicts, and export or import a JSON backup. |
 

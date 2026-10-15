@@ -42,7 +42,7 @@
 @media (max-width: 600px) { .meadow-scene { min-height: 210px; } .meadow-label { font-size: 6px; left: 13px; top: 15px; letter-spacing: 1px; } .meadow-weather { font-size: 7px; right: 13px; top: 12px; } .meadow-dog { width: 16%; } .meadow-card .scene-caption { min-height: 70px; } .meadow-card .scene-caption button { font-size: 12px; padding: 7px; } .scene-footer-actions button > span { display: none; } .meadow-card .scene-caption b { font-size: 12px; } .meadow-flower { scale: .75; } }
 @media (prefers-reduced-motion: reduce) { .meadow-dog-body, .meadow-flower { animation: none !important; } .meadow-flowers { transition: none; } }
 
-.meadow-dog.hungry:not(.hopping):not(.frozen) .meadow-dog-body { animation: meadow-plead 2.8s ease-in-out infinite; transform-origin: center 88%; }
+.meadow-dog.hungry.resting:not(.hopping):not(.frozen) .meadow-dog-body { animation: meadow-plead 2.8s ease-in-out infinite; transform-origin: center 88%; }
 .pet-bubble { position: absolute; width: 44%; height: auto; left: 28%; bottom: 92%; image-rendering: pixelated; pointer-events: none; }
 .pet-feed-target { position: absolute; width: 44px; height: 44px; bottom: 4%; left: 50%; transform: translateX(-50%); padding: 0; border: 0; border-radius: 8px; background: transparent; pointer-events: auto; cursor: pointer; }
 .pet-feed-target:focus-visible { outline: 3px solid #385c45; outline-offset: 3px; background: #ffffff25; }

@@ -25,7 +25,7 @@ export default function MeadowScene({ state, now, celebration, decorating, selec
     return () => observer.disconnect();
   }, []);
   const hungry = state.pets.active.filter(pet => isHungry(state, pet, now));
-  const motion = usePetsMotion(state.pets.active, state.placements, decorating, celebration !== null, hungry, gap);
+  const motion = usePetsMotion(state.pets.active, state.placements, decorating, celebration !== null, gap);
   const first = motion.pets[state.pets.active[0]];
   const flowerOrigin = useRef(first?.position ?? { x: 480, y: 350 });
   useEffect(() => { if (celebration && first) flowerOrigin.current = first.position; }, [celebration?.taskId, celebration?.startedAt]);
@@ -43,7 +43,7 @@ export default function MeadowScene({ state, now, celebration, decorating, selec
       const fedAt = hearts[pet];
       const heart = fedAt !== undefined && now < fedAt + 10_000;
       const hungryPet = hungry.includes(pet);
-      return walk && <DogAnimation key={pet} pet={pet} position={walk.position} facing={walk.facing} moving={!motion.frozen && (!hungryPet || celebration !== null) && walk.pauseMs <= 0 && walk.route.length > 0} celebrating={celebration !== null} frozen={motion.frozen} now={now} hungry={hungryPet} heart={heart} happy={fedAt !== undefined && now < fedAt + 2000} canFeed={hungryPet && !decorating} onFeed={() => onFeed(pet)} />;
+      return walk && <DogAnimation key={pet} pet={pet} position={walk.position} facing={walk.facing} moving={!motion.frozen && walk.pauseMs <= 0 && walk.route.length > 0} celebrating={celebration !== null} frozen={motion.frozen} now={now} hungry={hungryPet} heart={heart} happy={fedAt !== undefined && now < fedAt + 2000} canFeed={hungryPet && !decorating} onFeed={() => onFeed(pet)} />;
     })}
     <CelebrationFlowers celebration={celebration} position={flowerOrigin.current} now={now} staticDisplay={motion.frozen} />
     {Object.entries(state.placements).map(([id, cell]) => {

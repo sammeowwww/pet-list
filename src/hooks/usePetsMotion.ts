@@ -3,9 +3,8 @@ import { avoidNewDecorations, decorationObstacles, safePosition } from '../domai
 import { advancePets, initialPets, petObstacle } from '../domain/petMotion';
 import type { AppState, PetId } from '../domain/state';
 
-export function usePetsMotion(active: PetId[], placements: AppState['placements'], paused: boolean, celebrating: boolean, hungry: PetId[] = [], gap = 90) {
+export function usePetsMotion(active: PetId[], placements: AppState['placements'], paused: boolean, celebrating: boolean, gap = 90) {
   const activeKey = active.join(',');
-  const hungryKey = hungry.join(',');
   const obstacles = useMemo(() => decorationObstacles(placements), [placements]);
   const [pets, setPets] = useState(() => initialPets(active, obstacles, gap));
   const [hidden, setHidden] = useState(document.hidden);
@@ -41,10 +40,10 @@ export function usePetsMotion(active: PetId[], placements: AppState['placements'
     let previous = Date.now();
     const timer = setInterval(() => {
       const now = Date.now(); const elapsed = Math.min(100, now - previous); previous = now;
-      setPets(current => advancePets(current, active, elapsed, celebrating, obstacles, hungry, gap));
+      setPets(current => advancePets(current, active, elapsed, celebrating, obstacles, gap));
     }, 50);
     return () => clearInterval(timer);
-  }, [activeKey, hungryKey, obstacles, paused, hidden, reduced, celebrating, gap]);
+  }, [activeKey, obstacles, paused, hidden, reduced, celebrating, gap]);
   const frozen = paused || hidden || reduced;
   return { pets, frozen };
 }
