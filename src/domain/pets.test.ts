@@ -55,13 +55,18 @@ it('keeps three moving pets inside the safe field and clear of each other and de
   const active = ['dog', 'cat', 'bunny'] as const;
   const obstacles = decorationObstacles({ bed: { column: 6, row: 2 } });
   let pets = initialPets([...active], obstacles);
+  const movedNormally = new Set<string>();
+  let normalStart = pets;
   for (let tick = 0; tick < 600; tick++) {
+    if (tick === 100) normalStart = pets;
     pets = advancePets(pets, [...active], 100, tick < 100, obstacles);
     for (const id of active) {
       const others = active.filter(other => other !== id).map(other => petObstacle(pets[other]!));
       expect(safePosition(pets[id]!.position, [...obstacles, ...others])).toBe(true);
+      if (tick >= 100 && Math.hypot(pets[id]!.position.x - normalStart[id]!.position.x, pets[id]!.position.y - normalStart[id]!.position.y) > 2) movedNormally.add(id);
     }
   }
+  expect(movedNormally).toEqual(new Set(active));
 });
 it('retains the original feeding day when an offline action reconnects after midnight', () => {
   const action = command({ kind: 'feed', pet: 'dog' });
