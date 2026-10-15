@@ -3,10 +3,14 @@ import { test, expect, type Page } from '@playwright/test';
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('petlist:walkthrough:v1', 'seen')); });
 import { createTask, emptyState } from '../src/domain/state';
 const NOW = Date.parse('2026-10-06T10:00:00+08:00');
-async function seed(page: Page, three = false) {
+async function seed(page: Page, { threePets = false, decorated = false }: { threePets?: boolean; decorated?: boolean } = {}) {
   const state = emptyState();
   state.tasks = [createTask({ title: 'Flexible idea', note: '', category: 'Personal', assignedDay: null, deadline: null }, NOW)];
-  if (three) { state.pets.owned = ['dog', 'cat', 'bunny', 'hamster']; state.pets.active = ['dog', 'cat', 'bunny']; }
+  if (threePets) { state.pets.owned = ['dog', 'cat', 'bunny', 'hamster']; state.pets.active = ['dog', 'cat', 'bunny']; }
+  if (decorated) {
+    state.owned = ['bed', 'lamp'];
+    state.placements = { bed: { column: 3, row: 2 }, lamp: { column: 6, row: 1 } };
+  }
   await page.clock.install({ time: new Date(NOW) });
   await page.addInitScript(data => { if (!sessionStorage.getItem('features-seeded')) { localStorage.setItem('little-by-little:v1', JSON.stringify(data)); sessionStorage.setItem('features-seeded', 'yes'); } }, state);
   await page.goto('/');
@@ -66,7 +70,7 @@ test('General, default category, recurrence, scheduling and deletion work togeth
 });
 
 test('hungry pets feed by keyboard and tap, hearts expire independently and bubbles fit', async ({ page }, info) => {
-  await seed(page, true);
+  await seed(page, { threePets: true });
   await expect(page.locator('.pet-bubble')).toHaveCount(3);
   const scene = await page.getByTestId('meadow-scene').boundingBox();
   const targets = await page.locator('.pet-feed-target').all();
@@ -78,7 +82,7 @@ test('hungry pets feed by keyboard and tap, hearts expire independently and bubb
   for (const bubble of await page.locator('.pet-bubble').all()) { const b = (await bubble.boundingBox())!; expect(b.x).toBeGreaterThanOrEqual(scene!.x); expect(b.y).toBeGreaterThanOrEqual(scene!.y); expect(b.x + b.width).toBeLessThanOrEqual(scene!.x + scene!.width); }
   const before = await page.getByTestId('meadow-dog').getAttribute('data-x');
   await page.clock.runFor(4000);
-  await expect(page.getByTestId('meadow-dog')).toHaveAttribute('data-x', before!);
+  expect(await page.getByTestId('meadow-dog').getAttribute('data-x')).not.toBe(before);
   await expect(page.getByTestId('meadow-dog')).toHaveAttribute('data-motion', 'hungry');
   await page.getByRole('button', { name: 'Decorate', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Feed Bob', exact: true })).toHaveCount(0);
@@ -117,4 +121,41 @@ test('hungry pets feed by keyboard and tap, hearts expire independently and bubb
     const one = hungryBoxes[a]!; const two = hungryBoxes[b]!;
     expect(one.x + one.width <= two.x || two.x + two.width <= one.x).toBe(true);
   }
+});
+
+test('three hungry pets keep roaming in a narrow decorated meadow', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await seed(page, { threePets: true, decorated: true });
+  const pets = page.locator('.meadow-dog');
+  await expect(pets).toHaveCount(3);
+
+  async function positions(): Promise<Record<string, [number, number]>> {
+    return pets.evaluateAll(nodes => Object.fromEntries(nodes.map(node => [
+      node.getAttribute('data-pet'),
+      [Number(node.getAttribute('data-x')), Number(node.getAttribute('data-y'))],
+    ])));
+  }
+
+  let previous = await positions();
+  expect(new Set(Object.values(previous).map(point => point.join(','))).size).toBe(3);
+  const targets = await page.locator('.pet-feed-target').all();
+  const boxes = await Promise.all(targets.map(target => target.boundingBox()));
+  for (let first = 0; first < boxes.length; first++) {
+    for (let second = first + 1; second < boxes.length; second++) {
+      const a = boxes[first]!; const b = boxes[second]!;
+      expect(a.x + a.width <= b.x || b.x + b.width <= a.x).toBe(true);
+    }
+  }
+  const travelled = Object.fromEntries(Object.keys(previous).map(pet => [pet, 0])) as Record<string, number>;
+  for (let sample = 0; sample < 6; sample++) {
+    await page.clock.runFor(5000);
+    const current = await positions();
+    for (const pet of Object.keys(previous)) {
+      travelled[pet] += Math.hypot(current[pet][0] - previous[pet][0], current[pet][1] - previous[pet][1]);
+    }
+    previous = current;
+  }
+  for (const distance of Object.values(travelled)) expect(distance).toBeGreaterThan(20);
+  await expect(page.locator('.pet-bubble')).toHaveCount(3);
+  await page.screenshot({ path: info.outputPath('three-pets-decorated.png'), fullPage: true });
 });

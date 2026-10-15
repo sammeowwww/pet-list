@@ -2,13 +2,24 @@ import { advanceWalk, initialWalk, safePosition, type Point, type Rectangle, typ
 import type { PetId } from './state';
 
 export function petObstacle(walk: WalkState, gap = 90): Rectangle {
-  const halfWidth = Math.max(40, gap - 50);
-  return { left: walk.position.x - halfWidth, right: walk.position.x + halfWidth, top: walk.position.y - 85, bottom: walk.position.y + 3 };
+  const halfWidth = Math.max(40, gap - 30);
+  // Keep touch targets apart even when pets stand at different field depths.
+  return { left: walk.position.x - halfWidth, right: walk.position.x + halfWidth, top: 0, bottom: 430 };
 }
+
+export function fittedPetGap(count: number, decorations: Rectangle[], requestedGap: number): number {
+  // A narrow scene cannot always fit three full-size touch targets and decorations.
+  for (let gap = Math.min(150, Math.ceil(requestedGap / 10) * 10); gap >= 90; gap -= 10) {
+    if (rosterPositions(count, decorations, gap).length === count) return gap;
+  }
+  return 90;
+}
+
 export function initialPets(active: PetId[], decorations: Rectangle[], gap = 90): Partial<Record<PetId, WalkState>> {
   const pets: Partial<Record<PetId, WalkState>> = {};
-  const positions = rosterPositions(active.length, decorations, gap);
-  active.forEach((pet, index) => { pets[pet] = { ...initialWalk(), position: positions[index] ?? initialWalk().position, turns: index * 7, pauseMs: 1500 + index * 700 }; });
+  const positions = rosterPositions(active.length, decorations, fittedPetGap(active.length, decorations, gap));
+  const fallback = positions.length === active.length ? positions : rosterPositions(active.length, [], 90);
+  active.forEach((pet, index) => { pets[pet] = { ...initialWalk(), position: fallback[index], turns: index * 7, pauseMs: 1500 + index * 700 }; });
   return pets;
 }
 
