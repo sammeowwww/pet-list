@@ -17,14 +17,15 @@ export function decorationObstacles(placements: AppState['placements']): Rectang
   return Object.entries(placements).flatMap(([id, cell]) => {
     if (!cell || id === 'picture') return [];
     const position = itemPosition(cell);
-    return [{ left: position.x - 33, right: position.x + 33, top: position.y - 40, bottom: position.y + 26 }];
+    // Only the part touching the ground blocks paws; pets may walk behind the artwork.
+    return [{ left: position.x - 33, right: position.x + 33, top: position.y + 5, bottom: position.y + 26 }];
   });
 }
 
 export function safePosition(point: Point, obstacles: Rectangle[]): boolean {
   if (point.x < 360 || point.x > 740 || point.y < 340 || point.y > 390) return false;
-  const dog = { left: point.x - 50, right: point.x + 50, top: point.y - 96, bottom: point.y + 3 };
-  return obstacles.every(item => dog.right < item.left || dog.left > item.right || dog.bottom < item.top || dog.top > item.bottom);
+  const paws = { left: point.x - 30, right: point.x + 30, top: point.y - 12, bottom: point.y + 3 };
+  return obstacles.every(item => paws.right < item.left || paws.left > item.right || paws.bottom < item.top || paws.top > item.bottom);
 }
 
 export function safeSegment(from: Point, to: Point, obstacles: Rectangle[]): boolean {

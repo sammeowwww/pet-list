@@ -25,10 +25,11 @@ describe('meadow routing', () => {
     expect(planRoute(initialWalk().position, obstacles, 0)).toEqual([]);
     expect(advanceWalk(initialWalk(), 100, false, obstacles).moving).toBe(false);
   });
-  it('finds a clear resting spot after a decoration occupies the dog’s position', () => {
+  it('finds a clear resting spot after a decoration occupies a pet’s paws', () => {
     const obstacles = decorationObstacles({ bed: { column: 3, row: 2 } });
-    expect(safePosition(initialWalk().position, obstacles)).toBe(false);
-    const resting = avoidNewDecorations(initialWalk(), obstacles);
+    const occupied = { ...initialWalk(), position: { x: 430, y: 390 } };
+    expect(safePosition(occupied.position, obstacles)).toBe(false);
+    const resting = avoidNewDecorations(occupied, obstacles);
     expect(safePosition(resting.position, obstacles)).toBe(true);
     expect(resting.moving).toBe(false);
   });
