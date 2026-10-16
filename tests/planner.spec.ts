@@ -31,6 +31,19 @@ async function finishTask(page: Page, title: string) {
   await page.getByRole('button', { name: `Complete ${title}`, exact: true }).click();
 }
 
+test('next week selects Monday from any selected weekday', async ({ page }) => {
+  await seed(page, emptyState());
+  await page.getByRole('navigation').getByRole('button', { name: 'Today', exact: true }).click();
+
+  for (const weekday of ['Monday 5 October', 'Wednesday 7 October', 'Sunday 11 October']) {
+    await page.getByRole('button', { name: weekday, exact: true }).click();
+    await page.getByRole('button', { name: 'Next week', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Monday 12 October', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('heading', { name: 'Monday’s tasks' })).toBeVisible();
+    await page.locator('.calendar-tools').getByRole('button', { name: 'Today', exact: true }).click();
+  }
+});
+
 test('minimal form, progress, undo, rewards, shop and decorating survive reload', async ({ page }, testInfo) => {
   await seed(page, { ...emptyState(), coins: 10 });
   await expect(page.getByRole('heading', { name: 'Good morning.' })).toBeVisible();
