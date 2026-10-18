@@ -1,11 +1,26 @@
-import { appStateSchema, emptyState, settleRewards, STORAGE_KEY, type AppState } from './state';
+import {
+  appStateSchema,
+  emptyState,
+  settleRewards,
+  STORAGE_KEY,
+  type AppState,
+} from './state';
 
 export function readState(): { state: AppState; error: string | null } {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return { state: saved ? settleRewards(appStateSchema.parse(JSON.parse(saved)), Date.now()) : emptyState(), error: null };
+    return {
+      state: saved
+        ? settleRewards(appStateSchema.parse(JSON.parse(saved)), Date.now())
+        : emptyState(),
+      error: null,
+    };
   } catch {
-    return { state: emptyState(), error: 'Your saved data could not be loaded. It has not been overwritten. Import a backup, or explicitly start fresh in Settings.' };
+    return {
+      state: emptyState(),
+      error:
+        'Your saved data could not be loaded. It has not been overwritten. Import a backup, or explicitly start fresh in Settings.',
+    };
   }
 }
 
@@ -23,7 +38,9 @@ export function parseBackup(contents: string): AppState {
 }
 
 export function exportBackup(state: AppState): void {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }),
+  );
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = 'petlist-backup.json';

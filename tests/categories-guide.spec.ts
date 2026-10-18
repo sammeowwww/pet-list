@@ -1,59 +1,135 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createTask, emptyState, type AppState, type Task } from '../src/domain/state';
+import {
+  createTask,
+  emptyState,
+  type AppState,
+  type Task,
+} from '../src/domain/state';
 const NOW = Date.parse('2026-10-06T10:00:00+08:00');
 async function seed(page: Page, state = emptyState(), welcome = false) {
   await page.clock.install({ time: new Date(NOW) });
-  await page.addInitScript(({ state, welcome }) => {
-    if (sessionStorage.getItem('catalog-seeded')) return;
-    localStorage.setItem('little-by-little:v1', JSON.stringify(state));
-    if (!welcome) localStorage.setItem('petlist:walkthrough:v1', 'seen');
-    sessionStorage.setItem('catalog-seeded', 'yes');
-  }, { state, welcome });
+  await page.addInitScript(
+    ({ state, welcome }) => {
+      if (sessionStorage.getItem('catalog-seeded')) return;
+      localStorage.setItem('little-by-little:v1', JSON.stringify(state));
+      if (!welcome) localStorage.setItem('petlist:walkthrough:v1', 'seen');
+      sessionStorage.setItem('catalog-seeded', 'yes');
+    },
+    { state, welcome },
+  );
   await page.goto('/');
 }
-function task(title: string, category = 'Personal', overrides: Partial<Task> = {}): Task {
-  return { ...createTask({ title, category, note: '', assignedDay: null, deadline: null }, NOW), ...overrides };
+function task(
+  title: string,
+  category = 'Personal',
+  overrides: Partial<Task> = {},
+): Task {
+  return {
+    ...createTask(
+      { title, category, note: '', assignedDay: null, deadline: null },
+      NOW,
+    ),
+    ...overrides,
+  };
 }
-const nav = (page: Page, name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true });
-test('Home scrolls through every planned task while keeping progress and bonus visible', async ({ page }, info) => {
+const nav = (page: Page, name: string) =>
+  page.getByRole('navigation').getByRole('button', { name, exact: true });
+test('Home scrolls through every planned task while keeping progress and bonus visible', async ({
+  page,
+}, info) => {
   const state = emptyState();
-  state.tasks = Array.from({ length: 7 }, (_, index) => task(`Today ${index + 1}`, 'Work', { assignedDay: '2026-10-06', createdAt: NOW + index }));
+  state.tasks = Array.from({ length: 7 }, (_, index) =>
+    task(`Today ${index + 1}`, 'Work', {
+      assignedDay: '2026-10-06',
+      createdAt: NOW + index,
+    }),
+  );
   await seed(page, state);
   const list = page.getByRole('region', { name: "Today's tasks" });
-  await expect(list.locator('.task-row h3')).toHaveText(['Today 1', 'Today 2', 'Today 3', 'Today 4', 'Today 5', 'Today 6', 'Today 7']);
-  expect(await list.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
-  await expect(page.locator('.today-card .task-scroll-hint')).toHaveText('Scroll to see all 7 tasks');
+  await expect(list.locator('.task-row h3')).toHaveText([
+    'Today 1',
+    'Today 2',
+    'Today 3',
+    'Today 4',
+    'Today 5',
+    'Today 6',
+    'Today 7',
+  ]);
+  expect(
+    await list.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    ),
+  ).toBe(true);
+  await expect(page.locator('.today-card .task-scroll-hint')).toHaveText(
+    'Scroll to see all 7 tasks',
+  );
   await list.focus();
   await page.keyboard.press('End');
-  await expect.poll(() => list.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect
+    .poll(() => list.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
   await expect(page.locator('.today-card .progress-track')).toBeVisible();
   await expect(page.locator('.today-card .daily-bonus')).toBeVisible();
   await list.getByRole('button', { name: 'Options for Today 4' }).click();
   const firstMenu = await page.locator('.today-card .task-menu').boundingBox();
   const bounds = await list.boundingBox();
-  expect(firstMenu && bounds && firstMenu.y >= bounds.y && firstMenu.y + firstMenu.height <= bounds.y + bounds.height).toBeTruthy();
+  expect(
+    firstMenu &&
+      bounds &&
+      firstMenu.y >= bounds.y &&
+      firstMenu.y + firstMenu.height <= bounds.y + bounds.height,
+  ).toBeTruthy();
   await page.getByRole('button', { name: 'Close task options' }).click();
   await page.evaluate(() => {
     const card = document.querySelector('.today-card');
-    if (card) window.scrollTo(0, window.scrollY + card.getBoundingClientRect().top - 90);
+    if (card)
+      window.scrollTo(
+        0,
+        window.scrollY + card.getBoundingClientRect().top - 90,
+      );
   });
-  await page.locator('.today-card').screenshot({ path: info.outputPath('home-scroll-card.png') });
+  await page
+    .locator('.today-card')
+    .screenshot({ path: info.outputPath('home-scroll-card.png') });
   await list.getByRole('button', { name: 'Options for Today 7' }).click();
   await expect(page.locator('.today-card .task-menu')).toBeVisible();
   const menu = await page.locator('.today-card .task-menu').boundingBox();
   const scrolledBounds = await list.boundingBox();
-  expect(menu && scrolledBounds && menu.y >= scrolledBounds.y && menu.y + menu.height <= scrolledBounds.y + scrolledBounds.height).toBeTruthy();
-  await page.locator('.today-card .task-menu').getByRole('button', { name: 'Mark done' }).click();
-  await expect(page.locator('.today-card .task-row.done h3')).toHaveText('Today 7');
-  await expect(page.locator('.today-card .section-heading h2')).toHaveText('1 of 7 complete');
+  expect(
+    menu &&
+      scrolledBounds &&
+      menu.y >= scrolledBounds.y &&
+      menu.y + menu.height <= scrolledBounds.y + scrolledBounds.height,
+  ).toBeTruthy();
+  await page
+    .locator('.today-card .task-menu')
+    .getByRole('button', { name: 'Mark done' })
+    .click();
+  await expect(page.locator('.today-card .task-row.done h3')).toHaveText(
+    'Today 7',
+  );
+  await expect(page.locator('.today-card .section-heading h2')).toHaveText(
+    '1 of 7 complete',
+  );
 });
 
-test('Tasks shows undated work then newest dates, including across Show more', async ({ page }) => {
+test('Tasks shows undated work then newest dates, including across Show more', async ({
+  page,
+}) => {
   const state = emptyState();
   state.tasks = [
     task('Flexible plan'),
-    ...Array.from({ length: 27 }, (_, index) => task(`Plan ${index + 1}`, 'Work', { assignedDay: `2026-10-${String(index + 1).padStart(2, '0')}` })),
-    task('Finished on the sixth', 'Work', { assignedDay: '2026-10-02', status: 'done', completedAt: NOW, reward: 5 }),
+    ...Array.from({ length: 27 }, (_, index) =>
+      task(`Plan ${index + 1}`, 'Work', {
+        assignedDay: `2026-10-${String(index + 1).padStart(2, '0')}`,
+      }),
+    ),
+    task('Finished on the sixth', 'Work', {
+      assignedDay: '2026-10-02',
+      status: 'done',
+      completedAt: NOW,
+      reward: 5,
+    }),
   ];
   await seed(page, state);
   await nav(page, 'Tasks').click();
@@ -61,71 +137,220 @@ test('Tasks shows undated work then newest dates, including across Show more', a
   await expect(headings.first()).toHaveText('Undated tasks');
   await expect(headings.nth(1)).toHaveText('Tuesday, 27 October 2026');
   await expect(headings.last()).toHaveText('Sunday, 4 October 2026');
-  await expect(page.getByRole('heading', { name: 'Thursday, 1 October 2026' })).toHaveCount(0);
-  const sixth = page.locator('.history-day').filter({ has: page.getByRole('heading', { name: 'Tuesday, 6 October 2026' }) });
-  await expect(sixth.locator('.task-row h3')).toHaveText(['Plan 6', 'Finished on the sixth']);
+  await expect(
+    page.getByRole('heading', { name: 'Thursday, 1 October 2026' }),
+  ).toHaveCount(0);
+  const sixth = page.locator('.history-day').filter({
+    has: page.getByRole('heading', { name: 'Tuesday, 6 October 2026' }),
+  });
+  await expect(sixth.locator('.task-row h3')).toHaveText([
+    'Plan 6',
+    'Finished on the sixth',
+  ]);
   await page.getByRole('button', { name: /^Show more unfinished/ }).click();
   await expect(headings.last()).toHaveText('Thursday, 1 October 2026');
   await expect(headings).toHaveCount(28);
   await page.getByRole('button', { name: 'Completed', exact: true }).click();
   await expect(headings).toHaveText(['Tuesday, 6 October 2026']);
-  await expect(sixth.locator('.task-row h3')).toHaveText(['Finished on the sixth']);
+  await expect(sixth.locator('.task-row h3')).toHaveText([
+    'Finished on the sixth',
+  ]);
 });
 
-test('every task list reorders immediately on start, completion and undo, including Home previews', async ({ page }, info) => {
+test('every task list reorders immediately on start, completion and undo, including Home previews', async ({
+  page,
+}, info) => {
   const state = emptyState();
   const planned = { assignedDay: '2026-10-06' };
   state.tasks = [
-    task('Ongoing plan', 'Work', { ...planned, status: 'inprogress', createdAt: NOW - 20 }),
-    task('Finished plan', 'Work', { ...planned, status: 'done', completedAt: NOW - 10, reward: 5 }),
+    task('Ongoing plan', 'Work', {
+      ...planned,
+      status: 'inprogress',
+      createdAt: NOW - 20,
+    }),
+    task('Finished plan', 'Work', {
+      ...planned,
+      status: 'done',
+      completedAt: NOW - 10,
+      reward: 5,
+    }),
     task('First plan', 'Work', { ...planned, createdAt: NOW - 2 }),
     task('Second plan', 'Work', planned),
-    task('Ongoing idea', 'Personal', { status: 'inprogress', createdAt: NOW - 20 }),
-    ...Array.from({ length: 5 }, (_, index) => task(`Idea ${index + 1}`, 'Personal', { createdAt: NOW + index })),
+    task('Ongoing idea', 'Personal', {
+      status: 'inprogress',
+      createdAt: NOW - 20,
+    }),
+    ...Array.from({ length: 5 }, (_, index) =>
+      task(`Idea ${index + 1}`, 'Personal', { createdAt: NOW + index }),
+    ),
   ];
   await seed(page, state);
   const homeRows = page.locator('.today-card .task-row h3');
-  await expect(page.getByRole('region', { name: "Today's tasks" })).toHaveCount(0);
-  const original = ['First plan', 'Second plan', 'Ongoing plan', 'Finished plan'];
+  await expect(page.getByRole('region', { name: "Today's tasks" })).toHaveCount(
+    0,
+  );
+  const original = [
+    'First plan',
+    'Second plan',
+    'Ongoing plan',
+    'Finished plan',
+  ];
   await expect(homeRows).toHaveText(original);
-  await expect(page.locator('.general-card .task-row h3')).toHaveText(['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5']);
-  await page.getByRole('button', { name: 'Start First plan', exact: true }).click();
-  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
-  await page.getByRole('button', { name: 'Complete First plan', exact: true }).click();
-  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
-  await page.locator('.today-card .task-row').filter({ hasText: 'First plan' }).getByRole('button', { name: /^Undo/ }).click();
-  await expect(page.locator('.today-card .task-row.progress h3')).toHaveText(['Ongoing plan', 'First plan']);
-  await page.screenshot({ path: info.outputPath('home-status-order.png'), fullPage: true });
+  await expect(page.locator('.general-card .task-row h3')).toHaveText([
+    'Idea 1',
+    'Idea 2',
+    'Idea 3',
+    'Idea 4',
+    'Idea 5',
+  ]);
+  await page
+    .getByRole('button', { name: 'Start First plan', exact: true })
+    .click();
+  await expect(homeRows).toHaveText([
+    'Second plan',
+    'Ongoing plan',
+    'First plan',
+    'Finished plan',
+  ]);
+  await page
+    .getByRole('button', { name: 'Complete First plan', exact: true })
+    .click();
+  await expect(homeRows).toHaveText([
+    'Second plan',
+    'Ongoing plan',
+    'First plan',
+    'Finished plan',
+  ]);
+  await page
+    .locator('.today-card .task-row')
+    .filter({ hasText: 'First plan' })
+    .getByRole('button', { name: /^Undo/ })
+    .click();
+  await expect(page.locator('.today-card .task-row.progress h3')).toHaveText([
+    'Ongoing plan',
+    'First plan',
+  ]);
+  await page.screenshot({
+    path: info.outputPath('home-status-order.png'),
+    fullPage: true,
+  });
   await nav(page, 'Today').click();
   const dailyRows = page.locator('.planner-card .task-row h3');
-  await expect(dailyRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
-  await page.getByRole('button', { name: 'Complete Ongoing plan', exact: true }).click();
-  await expect(dailyRows).toHaveText(['Second plan', 'First plan', 'Ongoing plan', 'Finished plan']);
-  await page.locator('.planner-card .task-row').filter({ hasText: 'Ongoing plan' }).getByRole('button', { name: /^Undo/ }).click();
-  await expect(dailyRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await expect(dailyRows).toHaveText([
+    'Second plan',
+    'Ongoing plan',
+    'First plan',
+    'Finished plan',
+  ]);
+  await page
+    .getByRole('button', { name: 'Complete Ongoing plan', exact: true })
+    .click();
+  await expect(dailyRows).toHaveText([
+    'Second plan',
+    'First plan',
+    'Ongoing plan',
+    'Finished plan',
+  ]);
+  await page
+    .locator('.planner-card .task-row')
+    .filter({ hasText: 'Ongoing plan' })
+    .getByRole('button', { name: /^Undo/ })
+    .click();
+  await expect(dailyRows).toHaveText([
+    'Second plan',
+    'Ongoing plan',
+    'First plan',
+    'Finished plan',
+  ]);
   await page.getByRole('button', { name: /^General/ }).click();
-  await expect(dailyRows).toHaveText(['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea']);
+  await expect(dailyRows).toHaveText([
+    'Idea 1',
+    'Idea 2',
+    'Idea 3',
+    'Idea 4',
+    'Idea 5',
+    'Ongoing idea',
+  ]);
   await page.getByRole('button', { name: 'Start Idea 1', exact: true }).click();
-  await expect(dailyRows).toHaveText(['Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea', 'Idea 1']);
+  await expect(dailyRows).toHaveText([
+    'Idea 2',
+    'Idea 3',
+    'Idea 4',
+    'Idea 5',
+    'Ongoing idea',
+    'Idea 1',
+  ]);
   await nav(page, 'Tasks').click();
-  await expect(page.locator('.history-day').filter({ hasText: 'Tuesday, 6 October' }).locator('.task-row h3')).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
+  await expect(
+    page
+      .locator('.history-day')
+      .filter({ hasText: 'Tuesday, 6 October' })
+      .locator('.task-row h3'),
+  ).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
   await page.reload();
-  await expect(homeRows).toHaveText(['Second plan', 'Ongoing plan', 'First plan', 'Finished plan']);
-  await expect(page.locator('.general-card .task-row h3')).toHaveText(['Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Ongoing idea']);
+  await expect(homeRows).toHaveText([
+    'Second plan',
+    'Ongoing plan',
+    'First plan',
+    'Finished plan',
+  ]);
+  await expect(page.locator('.general-card .task-row h3')).toHaveText([
+    'Idea 2',
+    'Idea 3',
+    'Idea 4',
+    'Idea 5',
+    'Ongoing idea',
+  ]);
 });
 
-test('scopes preserve completion filters and search; history and unfinished work paginate independently', async ({ page }, info) => {
+test('scopes preserve completion filters and search; history and unfinished work paginate independently', async ({
+  page,
+}, info) => {
   const state = emptyState();
-  for (const category of state.categories) state.tasks.push(task(`${category.name} pending`, category.id), task(`${category.name} flexible win`, category.id, { status: 'done', completedAt: NOW, reward: 5 }), task(`${category.name} dated win`, category.id, { status: 'done', completedAt: NOW, reward: 5, assignedDay: '2026-10-06' }));
-  state.tasks.push(task('Archived memory', 'Personal', { status: 'done', completedAt: Date.parse('2026-08-01T12:00:00+08:00'), reward: 5 }));
-  state.tasks.push(task('Later work', 'Work', { assignedDay: '2026-10-09' }), task('Earlier work', 'Work', { deadline: '2026-10-07T12:00:00Z' }));
-  state.tasks.push(...Array.from({ length: 26 }, (_, index) => task(`Flexible idea ${index + 1}`)));
+  for (const category of state.categories)
+    state.tasks.push(
+      task(`${category.name} pending`, category.id),
+      task(`${category.name} flexible win`, category.id, {
+        status: 'done',
+        completedAt: NOW,
+        reward: 5,
+      }),
+      task(`${category.name} dated win`, category.id, {
+        status: 'done',
+        completedAt: NOW,
+        reward: 5,
+        assignedDay: '2026-10-06',
+      }),
+    );
+  state.tasks.push(
+    task('Archived memory', 'Personal', {
+      status: 'done',
+      completedAt: Date.parse('2026-08-01T12:00:00+08:00'),
+      reward: 5,
+    }),
+  );
+  state.tasks.push(
+    task('Later work', 'Work', { assignedDay: '2026-10-09' }),
+    task('Earlier work', 'Work', { deadline: '2026-10-07T12:00:00Z' }),
+  );
+  state.tasks.push(
+    ...Array.from({ length: 26 }, (_, index) =>
+      task(`Flexible idea ${index + 1}`),
+    ),
+  );
   await seed(page, state);
-  await page.locator('.general-card').getByRole('button', { name: 'View all →' }).click();
+  await page
+    .locator('.general-card')
+    .getByRole('button', { name: 'View all →' })
+    .click();
   await expect(page.getByLabel('Task scope')).toHaveValue('general');
-  await expect(page.getByRole('button', { name: 'All tasks', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('button', { name: 'All tasks', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.task-row.todo')).toHaveCount(25);
-  await expect(page.getByRole('switch', { name: 'Show completed' })).toBeChecked();
+  await expect(
+    page.getByRole('switch', { name: 'Show completed' }),
+  ).toBeChecked();
   await expect(page.locator('.completed-section')).toHaveCount(0);
   await expect(page.locator('.task-row.done')).toHaveCount(7);
   await page.getByRole('button', { name: /^Show more/ }).click();
@@ -134,7 +359,9 @@ test('scopes preserve completion filters and search; history and unfinished work
   await expect(page.locator('.task-row')).toHaveCount(6);
   for (const category of state.categories) {
     await page.getByLabel('Task scope').selectOption(`category:${category.id}`);
-    await expect(page.getByRole('button', { name: 'Completed', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      page.getByRole('button', { name: 'Completed', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.task-row')).toHaveCount(2);
   }
   await page.getByLabel('Search tasks').fill('archived');
@@ -149,19 +376,39 @@ test('scopes preserve completion filters and search; history and unfinished work
   await expect(page.locator('.task-row.todo')).toHaveCount(25);
   await page.getByRole('button', { name: /^Show more unfinished/ }).click();
   await expect(page.locator('.task-row.todo')).toHaveCount(34);
-  await expect(page.locator('.history-day').filter({ hasText: 'Wednesday, 7 October' })).toContainText('Earlier work');
+  await expect(
+    page.locator('.history-day').filter({ hasText: 'Wednesday, 7 October' }),
+  ).toContainText('Earlier work');
   await page.getByLabel('Task scope').selectOption('category:Work');
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: info.outputPath('tasks-filters.png'), fullPage: true });
-  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', await page.locator('body').evaluate(body => body.clientWidth));
+  await page.screenshot({
+    path: info.outputPath('tasks-filters.png'),
+    fullPage: true,
+  });
+  await expect(page.locator('body')).toHaveJSProperty(
+    'scrollWidth',
+    await page.locator('body').evaluate((body) => body.clientWidth),
+  );
   await page.getByRole('button', { name: 'Add general task' }).click();
   await page.locator('.optional-details > summary').click();
   await expect(page.getByLabel('Plan for')).toHaveValue('');
-  await expect(page.getByLabel('Category', { exact: true })).toHaveValue('Personal');
+  await expect(page.getByLabel('Category', { exact: true })).toHaveValue(
+    'Personal',
+  );
 });
-test('editable categories preserve badges and progress, default category and old backups', async ({ page }, info) => {
-  const state = emptyState(); state.coins = 23;
-  state.tasks = [task('A work plan', 'Work'), task('Personal completed', 'Personal', { status: 'done', completedAt: NOW, reward: 5 })];
+test('editable categories preserve badges and progress, default category and old backups', async ({
+  page,
+}, info) => {
+  const state = emptyState();
+  state.coins = 23;
+  state.tasks = [
+    task('A work plan', 'Work'),
+    task('Personal completed', 'Personal', {
+      status: 'done',
+      completedAt: NOW,
+      reward: 5,
+    }),
+  ];
   await seed(page, state);
   await nav(page, 'Settings').click();
   await page.getByRole('button', { name: 'Add category', exact: true }).click();
@@ -170,19 +417,30 @@ test('editable categories preserve badges and progress, default category and old
   await page.getByRole('button', { name: 'Rename Studies' }).click();
   await page.getByLabel('Category name').fill('PERSONAL');
   await page.getByRole('button', { name: 'Save category' }).click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('already exists');
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
+    'already exists',
+  );
   await page.getByLabel('Category name').fill('Learning');
   await page.getByRole('button', { name: 'Save category' }).click();
   await page.getByRole('button', { name: 'Rename Work' }).click();
   await page.getByLabel('Category name').fill('Career');
   await page.getByRole('button', { name: 'Save category' }).click();
-  await page.getByLabel('Default task category').selectOption({ label: 'Career' });
+  await page
+    .getByLabel('Default task category')
+    .selectOption({ label: 'Career' });
   await page.getByRole('button', { name: 'Remove Career' }).click();
-  await page.getByLabel('Replacement category').selectOption({ label: 'Learning' });
+  await page
+    .getByLabel('Replacement category')
+    .selectOption({ label: 'Learning' });
   await page.getByRole('button', { name: 'Move tasks and remove' }).click();
-  await expect(page.getByLabel('Default task category').locator('option:checked')).toHaveText('Learning');
+  await expect(
+    page.getByLabel('Default task category').locator('option:checked'),
+  ).toHaveText('Learning');
   await expect(page.getByLabel('23 coins', { exact: true })).toBeVisible();
-  await page.screenshot({ path: info.outputPath('settings-categories.png'), fullPage: true });
+  await page.screenshot({
+    path: info.outputPath('settings-categories.png'),
+    fullPage: true,
+  });
   await page.reload();
   await nav(page, 'Tasks').click();
   await page.getByLabel('Task scope').selectOption({ label: 'Learning' });
@@ -190,35 +448,68 @@ test('editable categories preserve badges and progress, default category and old
   await expect(page.locator('.task-row .category')).toHaveText('Learning');
   await nav(page, 'Settings').click();
   const { categories: _, ...old } = { ...state, version: 3 };
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('input[type=file]').setInputFiles({ name: 'v3.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(old)) });
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'v3.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(old)),
+  });
   await expect(page.getByRole('button', { name: 'Rename Work' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Rename Learning' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Rename Learning' }),
+  ).toHaveCount(0);
   await expect(page.getByLabel('23 coins', { exact: true })).toBeVisible();
 });
-test('companion collapse persists and meadow feeding stays available', async ({ page }, info) => {
+test('companion collapse persists and meadow feeding stays available', async ({
+  page,
+}, info) => {
   await seed(page);
   await page.getByRole('button', { name: 'Minimise companions' }).click();
   await expect(page.locator('.pet-controls')).not.toBeVisible();
   await expect(page.locator('.hunger-summary')).toHaveText('1 pet is hungry');
   await page.getByRole('button', { name: 'Feed Bob', exact: true }).click();
-  await expect(page.locator('.hunger-summary')).toHaveText('All meadow pets are satisfied');
+  await expect(page.locator('.hunger-summary')).toHaveText(
+    'All meadow pets are satisfied',
+  );
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Expand companions' })).toHaveAttribute('aria-expanded', 'false');
-  await page.screenshot({ path: info.outputPath('home-collapsed.png'), fullPage: true });
+  await expect(
+    page.getByRole('button', { name: 'Expand companions' }),
+  ).toHaveAttribute('aria-expanded', 'false');
+  await page.screenshot({
+    path: info.outputPath('home-collapsed.png'),
+    fullPage: true,
+  });
   await page.getByRole('button', { name: 'Expand companions' }).click();
   await expect(page.getByRole('button', { name: 'Fed today' })).toBeVisible();
 });
-test('first-use illustrated tour, keyboard dismissal and replay never mutate the planner or tab', async ({ page }, info) => {
-  const state = emptyState(); state.tasks = [task('Keep this task')];
+test('first-use illustrated tour, keyboard dismissal and replay never mutate the planner or tab', async ({
+  page,
+}, info) => {
+  const state = emptyState();
+  state.tasks = [task('Keep this task')];
   await seed(page, state, true);
-  await expect(page.getByRole('dialog', { name: 'Welcome to PetList' })).toBeVisible();
-  const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
-  await expect(touch ? page.getByRole('dialog') : page.getByRole('button', { name: 'Start tour' })).toBeFocused();
+  await expect(
+    page.getByRole('dialog', { name: 'Welcome to PetList' }),
+  ).toBeVisible();
+  const touch = await page.evaluate(
+    () => matchMedia('(pointer: coarse)').matches,
+  );
+  await expect(
+    touch
+      ? page.getByRole('dialog')
+      : page.getByRole('button', { name: 'Start tour' }),
+  ).toBeFocused();
   await page.getByRole('button', { name: 'Start tour' }).press('Enter');
   await expect(page.getByLabel('Step 1 of 8')).toBeVisible();
-  await expect(touch ? page.getByRole('dialog') : page.getByRole('button', { name: 'Next', exact: true })).toBeFocused();
-  await page.screenshot({ path: info.outputPath('walkthrough.png'), fullPage: true });
+  await expect(
+    touch
+      ? page.getByRole('dialog')
+      : page.getByRole('button', { name: 'Next', exact: true }),
+  ).toBeFocused();
+  await page.screenshot({
+    path: info.outputPath('walkthrough.png'),
+    fullPage: true,
+  });
   for (let step = 1; step < 8; step++) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByLabel(`Step ${step + 1} of 8`)).toBeVisible();
@@ -229,7 +520,11 @@ test('first-use illustrated tour, keyboard dismissal and replay never mutate the
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(nav(page, 'Home')).toHaveAttribute('aria-current', 'page');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('little-by-little:v1')!))).toEqual(state);
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('little-by-little:v1')!),
+    ),
+  ).toEqual(state);
   await page.reload();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await nav(page, 'Settings').click();
@@ -241,12 +536,25 @@ test('first-use illustrated tour, keyboard dismissal and replay never mutate the
   await expect(nav(page, 'Settings')).toHaveAttribute('aria-current', 'page');
 });
 
-test('completed and unfinished sections have separate show-more controls', async ({ page }) => {
+test('completed and unfinished sections have separate show-more controls', async ({
+  page,
+}) => {
   const state = emptyState();
-  state.tasks = [...Array.from({ length: 28 }, (_, index) => task(`Pending ${index}`)), ...Array.from({ length: 53 }, (_, index) => task(`Completed ${index}`, 'Personal', { status: 'done', completedAt: NOW - index * 1000, reward: 5 }))];
+  state.tasks = [
+    ...Array.from({ length: 28 }, (_, index) => task(`Pending ${index}`)),
+    ...Array.from({ length: 53 }, (_, index) =>
+      task(`Completed ${index}`, 'Personal', {
+        status: 'done',
+        completedAt: NOW - index * 1000,
+        reward: 5,
+      }),
+    ),
+  ];
   await seed(page, state);
   await nav(page, 'Tasks').click();
-  await expect(page.getByRole('switch', { name: 'Show completed' })).toBeChecked();
+  await expect(
+    page.getByRole('switch', { name: 'Show completed' }),
+  ).toBeChecked();
   await expect(page.locator('.task-row.done')).toHaveCount(25);
   await expect(page.locator('.task-row.todo')).toHaveCount(25);
   await page.getByRole('button', { name: /^Show more completed/ }).click();
@@ -262,7 +570,9 @@ test('completed and unfinished sections have separate show-more controls', async
   await page.getByRole('button', { name: /^Show more/ }).click();
   await expect(page.locator('.task-row')).toHaveCount(50);
 });
-test('skipping the welcome persists and keyboard focus stays inside a replay', async ({ page }) => {
+test('skipping the welcome persists and keyboard focus stays inside a replay', async ({
+  page,
+}) => {
   await seed(page, emptyState(), true);
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await page.reload();
@@ -270,14 +580,22 @@ test('skipping the welcome persists and keyboard focus stays inside a replay', a
   await nav(page, 'Settings').click();
   await page.getByRole('button', { name: 'Replay walkthrough' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).press('Tab');
-  await expect(page.getByRole('button', { name: 'Close dialog' })).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Close dialog' }),
+  ).toBeFocused();
   await page.getByRole('button', { name: 'Close dialog' }).press('Shift+Tab');
-  await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Next', exact: true }),
+  ).toBeFocused();
   await page.getByRole('button', { name: 'Next', exact: true }).press('Escape');
-  await expect(page.getByRole('button', { name: 'Replay walkthrough' })).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Replay walkthrough' }),
+  ).toBeFocused();
 });
 
-test('walkthrough blocks background taps and page scrolling, then restores the page', async ({ page }) => {
+test('walkthrough blocks background taps and page scrolling, then restores the page', async ({
+  page,
+}) => {
   await seed(page);
   await page.evaluate(() => window.scrollTo(0, 250));
   await page.getByRole('button', { name: 'Settings and backups' }).click();
@@ -289,16 +607,30 @@ test('walkthrough blocks background taps and page scrolling, then restores the p
   await expect(page.locator('.bottom-nav')).toHaveAttribute('inert', '');
   await expect(page.locator('.topbar')).toHaveAttribute('inert', '');
   await expect(page.locator('body')).toHaveCSS('position', 'fixed');
-  const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  const touch = await page.evaluate(
+    () => matchMedia('(pointer: coarse)').matches,
+  );
   if (touch) {
     await expect(page.getByRole('dialog')).toBeFocused();
-    await expect(page.getByRole('button', { name: 'Next', exact: true })).not.toBeFocused();
+    await expect(
+      page.getByRole('button', { name: 'Next', exact: true }),
+    ).not.toBeFocused();
   }
   const home = page.locator('.bottom-nav .home-button');
   const point = await home.boundingBox();
-  if (touch) await page.touchscreen.tap(point!.x + point!.width / 2, point!.y + point!.height / 2);
-  else await page.mouse.click(point!.x + point!.width / 2, point!.y + point!.height / 2);
-  await expect(page.locator('.bottom-nav button.active')).toContainText('Settings');
+  if (touch)
+    await page.touchscreen.tap(
+      point!.x + point!.width / 2,
+      point!.y + point!.height / 2,
+    );
+  else
+    await page.mouse.click(
+      point!.x + point!.width / 2,
+      point!.y + point!.height / 2,
+    );
+  await expect(page.locator('.bottom-nav button.active')).toContainText(
+    'Settings',
+  );
   const before = await page.evaluate(() => scrollY);
   await page.mouse.move(2, 2);
   await page.mouse.wheel(0, 500);
@@ -312,40 +644,81 @@ test('walkthrough blocks background taps and page scrolling, then restores the p
   await expect(nav(page, 'Home')).toHaveAttribute('aria-current', 'page');
 });
 
-test('input focus and touch taps keep their normal border without a glow', async ({ page }) => {
+test('input focus and touch taps keep their normal border without a glow', async ({
+  page,
+}) => {
   await seed(page);
   await page.getByRole('button', { name: 'Add task', exact: true }).click();
   const title = page.getByLabel('Task name');
   await expect(title).toBeFocused();
   await expect(title).toHaveCSS('outline-style', 'none');
   await expect(title).toHaveCSS('box-shadow', 'none');
-  await expect(title).toHaveCSS('-webkit-tap-highlight-color', 'rgba(0, 0, 0, 0)');
-  const border = await title.evaluate(element => getComputedStyle(element).border);
+  await expect(title).toHaveCSS(
+    '-webkit-tap-highlight-color',
+    'rgba(0, 0, 0, 0)',
+  );
+  const border = await title.evaluate(
+    (element) => getComputedStyle(element).border,
+  );
   await page.getByLabel('Category', { exact: true }).focus();
-  await expect(page.getByLabel('Category', { exact: true })).toHaveCSS('outline-style', 'none');
+  await expect(page.getByLabel('Category', { exact: true })).toHaveCSS(
+    'outline-style',
+    'none',
+  );
   await title.click();
-  expect(await title.evaluate(element => getComputedStyle(element).border)).toBe(border);
+  expect(
+    await title.evaluate((element) => getComputedStyle(element).border),
+  ).toBe(border);
   await title.fill('A normal-looking input');
   await page.locator('.optional-details > summary').click();
   await page.getByLabel('Notes').click();
   await expect(page.getByLabel('Notes')).toHaveCSS('outline-style', 'none');
   await page.getByLabel('Notes').fill('Typing still works');
   await page.getByRole('button', { name: /^Add to/ }).click();
-  await expect(page.locator('.task-row')).toContainText('A normal-looking input');
+  await expect(page.locator('.task-row')).toContainText(
+    'A normal-looking input',
+  );
 });
 
-test('default combined view groups each day once, orders statuses and toggles completed work', async ({ page }, info) => {
+test('default combined view groups each day once, orders statuses and toggles completed work', async ({
+  page,
+}, info) => {
   const state = emptyState();
-  state.tasks = [task('Ongoing Tuesday', 'Personal', { assignedDay: '2026-10-06', status: 'inprogress' }), task('Finished Tuesday', 'Work', { assignedDay: '2026-10-05', status: 'done', completedAt: NOW, reward: 5 }), task('To do Tuesday', 'Work', { assignedDay: '2026-10-06' }), task('General idea'), task('Later Wednesday', 'Personal', { assignedDay: '2026-10-07' })];
+  state.tasks = [
+    task('Ongoing Tuesday', 'Personal', {
+      assignedDay: '2026-10-06',
+      status: 'inprogress',
+    }),
+    task('Finished Tuesday', 'Work', {
+      assignedDay: '2026-10-05',
+      status: 'done',
+      completedAt: NOW,
+      reward: 5,
+    }),
+    task('To do Tuesday', 'Work', { assignedDay: '2026-10-06' }),
+    task('General idea'),
+    task('Later Wednesday', 'Personal', { assignedDay: '2026-10-07' }),
+  ];
   await seed(page, state);
   await nav(page, 'Tasks').click();
   await expect(page.getByLabel('Task scope')).toHaveValue('all');
   const toggle = page.getByRole('switch', { name: 'Show completed' });
   await expect(toggle).toBeChecked();
-  const tuesday = page.locator('.history-day').filter({ has: page.getByRole('heading', { name: 'Tuesday, 6 October 2026', exact: true }) });
+  const tuesday = page.locator('.history-day').filter({
+    has: page.getByRole('heading', {
+      name: 'Tuesday, 6 October 2026',
+      exact: true,
+    }),
+  });
   await expect(tuesday).toHaveCount(1);
-  await expect(tuesday.locator('.task-row h3')).toHaveText(['To do Tuesday', 'Ongoing Tuesday', 'Finished Tuesday']);
-  await expect(page.getByRole('heading', { name: 'Monday, 5 October 2026', exact: true })).toHaveCount(0);
+  await expect(tuesday.locator('.task-row h3')).toHaveText([
+    'To do Tuesday',
+    'Ongoing Tuesday',
+    'Finished Tuesday',
+  ]);
+  await expect(
+    page.getByRole('heading', { name: 'Monday, 5 October 2026', exact: true }),
+  ).toHaveCount(0);
   await toggle.press('Space');
   await expect(page.locator('.task-row.done')).toHaveCount(0);
   await page.getByLabel('Task scope').selectOption('category:Work');
@@ -357,19 +730,35 @@ test('default combined view groups each day once, orders statuses and toggles co
   await page.getByLabel('Search tasks').fill('Tuesday');
   await page.getByLabel('Task scope').selectOption('all');
   await expect(page.getByLabel('Search tasks')).toHaveValue('Tuesday');
-  const heading = await page.getByRole('heading', { name: 'Tasks', exact: true }).boundingBox();
-  const add = await page.getByRole('button', { name: 'Add general task' }).boundingBox();
-  if (!heading || !add) throw new Error('Tasks heading and Add task button must be visible.');
+  const heading = await page
+    .getByRole('heading', { name: 'Tasks', exact: true })
+    .boundingBox();
+  const add = await page
+    .getByRole('button', { name: 'Add general task' })
+    .boundingBox();
+  if (!heading || !add)
+    throw new Error('Tasks heading and Add task button must be visible.');
   expect(add.y).toBeGreaterThan(heading.y + heading.height);
-  expect(Math.abs((heading.x + heading.width / 2) - (add.x + add.width / 2))).toBeLessThan(2);
+  expect(
+    Math.abs(heading.x + heading.width / 2 - (add.x + add.width / 2)),
+  ).toBeLessThan(2);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: info.outputPath('combined-tasks.png'), fullPage: true });
-  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', await page.locator('body').evaluate(body => body.clientWidth));
+  await page.screenshot({
+    path: info.outputPath('combined-tasks.png'),
+    fullPage: true,
+  });
+  await expect(page.locator('body')).toHaveJSProperty(
+    'scrollWidth',
+    await page.locator('body').evaluate((body) => body.clientWidth),
+  );
   await page.reload();
   await nav(page, 'Tasks').click();
   await expect(page.getByLabel('Task scope')).toHaveValue('all');
   await expect(toggle).toBeChecked();
   await nav(page, 'Home').click();
-  await page.locator('.general-card').getByRole('button', { name: 'View all →' }).click();
+  await page
+    .locator('.general-card')
+    .getByRole('button', { name: 'View all →' })
+    .click();
   await expect(page.getByLabel('Task scope')).toHaveValue('general');
 });
