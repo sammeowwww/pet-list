@@ -14,6 +14,7 @@ export default function TasksPage({
   onSelect,
   actions,
   onAdd,
+  onCalendar,
 }: {
   state: AppState;
   now: number;
@@ -21,6 +22,7 @@ export default function TasksPage({
   onSelect: (day: string) => void;
   actions: TaskActions;
   onAdd: (day: string | null) => void;
+  onCalendar: () => void;
 }) {
   const [general, setGeneral] = useState(false);
   const today = localDay(now);
@@ -46,13 +48,21 @@ export default function TasksPage({
           <h1>{`${formatDay(day, { weekday: 'long' })}’s tasks`}</h1>
           <p>Small steps count. Keep your day moving.</p>
         </div>
-        <button
-          className="primary-button"
-          aria-label="Add task"
-          onClick={() => onAdd(general ? null : day)}
-        >
-          <Plus size={19} /> Add task
-        </button>
+        <div className="today-title-actions">
+          <button
+            className="secondary-button"
+            onClick={onCalendar}
+          >
+            <CalendarDays size={18} /> View calendar
+          </button>
+          <button
+            className="primary-button"
+            aria-label="Add task"
+            onClick={() => onAdd(general ? null : day)}
+          >
+            <Plus size={19} /> Add task
+          </button>
+        </div>
       </section>
       <CalendarStrip
         day={day}
