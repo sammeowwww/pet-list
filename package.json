@@ -9,8 +9,6 @@
     "build": "tsc -b && vite build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"functions/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"functions/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"functions/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"functions/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:e2e": "playwright test"

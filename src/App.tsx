@@ -18,6 +18,7 @@ import Walkthrough, {
 } from './components/Walkthrough';
 import HomePage from './components/HomePage';
 import TasksPage from './components/TasksPage';
+import MonthCalendar from './components/MonthCalendar';
 import HistoryPage from './components/HistoryPage';
 import ShopPage from './components/ShopPage';
 import SettingsDialog from './components/SettingsDialog';
@@ -44,7 +45,7 @@ import {
 } from './domain/state';
 import { taskFields, type Command } from './domain/commands';
 
-type Tab = 'today' | 'tasks' | 'home' | 'shop' | 'settings';
+type Tab = 'today' | 'calendar' | 'tasks' | 'home' | 'shop' | 'settings';
 type Editor = { task: Task | null; day: string | null; before?: Task };
 const NAVIGATION = [
   { id: 'today', label: 'Today', icon: Check },
@@ -310,6 +311,18 @@ export default function App() {
               onSelect={setDay}
               actions={actions}
               onAdd={addTask}
+              onCalendar={() => setTab('calendar')}
+            />
+          )}
+          {tab === 'calendar' && (
+            <MonthCalendar
+              state={state}
+              now={now}
+              day={day}
+              onSelect={setDay}
+              onBack={() => setTab('today')}
+              onAdd={addTask}
+              actions={actions}
             />
           )}
           {tab === 'tasks' && (
@@ -338,9 +351,13 @@ export default function App() {
           {NAVIGATION.map((item) => (
             <button
               key={item.id}
-              className={`${tab === item.id ? 'active' : ''} ${item.id === 'home' ? 'home-button' : ''}`}
+              className={`${tab === item.id || (tab === 'calendar' && item.id === 'today') ? 'active' : ''} ${item.id === 'home' ? 'home-button' : ''}`}
               onClick={() => selectTab(item.id)}
-              aria-current={tab === item.id ? 'page' : undefined}
+              aria-current={
+                tab === item.id || (tab === 'calendar' && item.id === 'today')
+                  ? 'page'
+                  : undefined
+              }
             >
               <span>
                 <item.icon size={21} />
